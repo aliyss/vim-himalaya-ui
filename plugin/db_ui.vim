@@ -123,8 +123,8 @@ augroup dbui
   autocmd FileType dbout,dbui autocmd BufEnter,WinEnter <buffer> stopinsert
 augroup END
 
-command! DBUI call db_ui#open('<mods>')
-command! DBUIToggle call db_ui#toggle()
+command! HIMALAYAUI call db_ui#open('<mods>')
+command! HIMALAYAToggle call db_ui#toggle()
 command! DBUIClose call db_ui#close()
 command! DBUIAddConnection call db_ui#connections#add()
 command! DBUIFindBuffer call db_ui#find_buffer()
