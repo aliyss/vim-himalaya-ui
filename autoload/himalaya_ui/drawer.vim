@@ -5,6 +5,7 @@ function himalaya_ui#drawer#new(himalayaui)
   let s:drawer_instance = s:drawer.new(a:himalayaui)
   return s:drawer_instance
 endfunction
+
 function himalaya_ui#drawer#get()
   return s:drawer_instance
 endfunction

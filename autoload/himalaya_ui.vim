@@ -212,11 +212,11 @@ function! s:himalayaui.populate_himalayas() abort
   call self.populate_from_dotenv()
   call self.populate_from_env()
   call self.populate_from_global_variable()
-  call self.populate_from_connections_file()
+  call self.populate_from_himalaya()
 
   for himalaya in self.himalayas_list
-    let key_name = printf('%s_%s', himalaya.name, himalaya.source)
-    if !has_key(self.himalayas, key_name) || himalaya.url !=? self.himalayas[key_name].url
+    let key_name = printf('%s_%s', himalaya.name, himalaya.backend)
+    if !has_key(self.himalayas, key_name) || himalaya.backend !=? self.himalayas[key_name].backend
       let new_entry = self.generate_new_himalaya_entry(himalaya)
       if !empty(new_entry)
         let self.himalayas[key_name] = new_entry
@@ -228,41 +228,30 @@ function! s:himalayaui.populate_himalayas() abort
 endfunction
 
 function! s:himalayaui.generate_new_himalaya_entry(himalaya) abort
-  let parsed_url = self.parse_url(a:himalaya.url)
-  if empty(parsed_url)
-    return parsed_url
-  endif
-  let himalaya_name = substitute(get(parsed_url, 'path', ''), '^\/', '', '')
-  let save_path = ''
-  if !empty(self.save_path)
-    let save_path = printf('%s/%s', self.save_path, a:himalaya.name)
-  endif
-  let buffers = filter(copy(self.old_buffers), 'fnamemodify(v:val, ":e") =~? "^".a:himalaya.name."-" || fnamemodify(v:val, ":t") =~? "^".a:himalaya.name."-"')
-
   let himalaya = {
-        \ 'url': a:himalaya.url,
+        \ 'backend': a:himalaya.backend,
         \ 'conn': '',
         \ 'conn_error': '',
         \ 'conn_tried': 0,
-        \ 'source': a:himalaya.source,
+        \ 'source': a:himalaya.backend,
         \ 'scheme': '',
         \ 'table_helpers': {},
         \ 'expanded': 0,
         \ 'tables': {'expanded': 0 , 'items': {}, 'list': [] },
         \ 'schemas': {'expanded': 0, 'items': {}, 'list': [] },
         \ 'saved_queries': { 'expanded': 0, 'list': [] },
-        \ 'buffers': { 'expanded': 0, 'list': buffers, 'tmp': [] },
-        \ 'save_path': save_path,
-        \ 'himalaya_name': !empty(himalaya_name) ? himalaya_name : a:himalaya.name,
+        \ 'buffers': { 'expanded': 0, 'list': [], 'tmp': [] },
+        \ 'save_path': "",
+        \ 'himalaya_name': a:himalaya.name,
         \ 'name': a:himalaya.name,
-        \ 'key_name': printf('%s_%s', a:himalaya.name, a:himalaya.source),
+        \ 'key_name': printf('%s_%s', a:himalaya.name, a:himalaya.backend),
         \ 'schema_support': 0,
         \ 'quote': 0,
         \ 'default_scheme': '',
         \ 'filetype': ''
         \ }
 
-  call self.populate_schema_info(himalaya)
+  " call self.populate_schema_info(himalaya)
   return himalaya
 endfunction
 
@@ -363,30 +352,29 @@ function! s:himalayaui.parse_url(url) abort
   endtry
 endfunction
 
-function! s:himalayaui.populate_from_connections_file() abort
+function! s:himalayaui.populate_from_himalaya() abort
 
-  call self.add_if_not_exists("Test", "https://url.com", 'file')
+  let accounts = himalaya_ui#utils#request_json_sync({
+  \ 'cmd': 'account list',
+  \ 'args': [],
+  \ 'msg': 'Listing accounts...',
+  \})
 
-  if empty(self.connections_path) || !filereadable(self.connections_path)
-    return self
-  endif
-
-  let file = himalaya_ui#utils#readfile(self.connections_path)
-
-  for conn in file
-    call self.add_if_not_exists(conn.name, conn.url, 'file')
+  for account in accounts
+    call self.add_if_not_exists(account.name, account.backend, account.default)
   endfor
 
+  echom self
   return self
 endfunction
 
-function! s:himalayaui.add_if_not_exists(name, url, source) abort
-  let existing = get(filter(copy(self.himalayas_list), 'v:val.name ==? a:name && v:val.source ==? a:source'), 0, {})
+function! s:himalayaui.add_if_not_exists(name, backend, default) abort
+  let existing = get(filter(copy(self.himalayas_list), 'v:val.name ==? a:name && v:val.backend ==? a:backend'), 0, {})
   if !empty(existing)
-    return himalaya_ui#notifications#warning(printf('Warning: Duplicate connection name "%s" in "%s" source. First one added has precedence.', a:name, a:source))
+    return himalaya_ui#notifications#warning(printf('Warning: Duplicate connection name "%s" in "%s" backend. First one added has precedence.', a:name, a:backend))
   endif
   return add(self.himalayas_list, {
-        \ 'name': a:name, 'url': himalaya_ui#resolve(a:url), 'source': a:source, 'key_name': printf('%s_%s', a:name, a:source)
+        \ 'name': a:name, 'backend': a:backend, 'default': a:default, 'key_name': printf('%s_%s', a:name, a:backend)
         \ })
 endfunction
 

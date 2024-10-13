@@ -11,26 +11,32 @@ function! himalaya_ui#utils#inputlist(list) abort
 endfunction
 
 function! himalaya_ui#utils#request_json(opts) abort
+  call himalaya#request#json(a:opts)
+endfunction
+
+function! himalaya_ui#utils#request_json_sync(opts) abort
   let args = get(a:opts, 'args', [])
   call himalaya#log#info(printf('%s…', a:opts.msg))
   let config = exists('g:himalaya_config_path') ? ' --config ' . g:himalaya_config_path : ''
   let cmd = call('printf', [g:himalaya_executable . config . ' --output json ' . a:opts.cmd] + args)
-  call himalaya#job#start(cmd, {data -> s:on_json_data(data, a:opts)})
+  try
+    let content = himalaya_ui#job#start(cmd)
+    let parsed_content = json_decode(content[0])
+    return parsed_content
+  catch /.*/
+    call himalaya_ui#notifications#warning([
+          \ 'Error executing command.',
+          \ ])
+  endtry
 endfunction
 
 function! himalaya_ui#utils#readfile(file) abort
   try
-    let content = himalaya#request#json({
-      \ 'cmd': 'account list',
-      \ 'args': [shellescape(account)],
-      \ 'msg': 'Listing folders',
-      \ 'on_data': {data -> s:open_picker(data, a:on_select_folder)},
-      \})
+    let content = readfile(a:file)
     let content = json_decode(join(content, "\n"))
     if type(content) !=? type([])
       throw 'Connections file not a valid array'
     endif
-    echomsg "Content: ".string(content)
     return content
   catch /.*/
     call himalaya_ui#notifications#warning([
