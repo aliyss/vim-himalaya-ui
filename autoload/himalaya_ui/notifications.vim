@@ -5,34 +5,34 @@
 
 " Default options, overrideable via second argument to functions
 let s:delay = 7000                        "Hide after this number of milliseconds
-let s:width = g:db_ui_notification_width  "Default notification width
-let s:pos = 'bot'.g:db_ui_win_position     "Default position for notification
-let s:title = '[DBUI]'                    "Title of notification
+let s:width = g:himalaya_ui_notification_width  "Default notification width
+let s:pos = 'bot'.g:himalaya_ui_win_position     "Default position for notification
+let s:title = '[HIMALAYAUI]'                    "Title of notification
 let s:last_msg = ''
-let s:use_nvim_notify = g:db_ui_use_nvim_notify
+let s:use_nvim_notify = g:himalaya_ui_use_nvim_notify
 
 let s:colors_set = 0
 
 if s:use_nvim_notify && !has('nvim')
-  echoerr "Option db_ui_use_nvim_notify is supported only in neovim"
+  echoerr "Option himalaya_ui_use_nvim_notify is supported only in neovim"
 endif
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "                  Public API, adapt names to your needs                      "
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-function! db_ui#notifications#info(msg, ...) abort
+function! himalaya_ui#notifications#info(msg, ...) abort
   return s:notification(a:msg, get(a:, 1, {}))
 endfunction
 
-function! db_ui#notifications#error(msg, ...) abort
+function! himalaya_ui#notifications#error(msg, ...) abort
   return s:notification(a:msg, extend({'type': 'error'}, get(a:, 1, {})))
 endfunction
 
-function! db_ui#notifications#warning(msg, ...) abort
+function! himalaya_ui#notifications#warning(msg, ...) abort
   return s:notification(a:msg, extend({'type': 'warning'}, get(a:, 1, {})))
 endfunction
 
-function! db_ui#notifications#get_last_msg() abort
+function! himalaya_ui#notifications#get_last_msg() abort
   if type(s:last_msg) ==? type([])
     return join(s:last_msg)
   endif
@@ -54,7 +54,7 @@ function! s:notification(msg, opts) abort
 
   let use_echo = get(a:opts, 'echo', 0)
   if !use_echo
-    let use_echo = g:db_ui_force_echo_notifications
+    let use_echo = g:himalaya_ui_force_echo_notifications
   endif
 
   if s:use_nvim_notify && !use_echo
@@ -225,10 +225,10 @@ function! s:get_pos(pos, width) abort
   let min_col = s:neovim_float ? 1 : 2
   let min_row = s:neovim_float ? 0 : 1
   let max_col = &columns - 1
-  let dbout_buffers = filter(range(1, winnr('$')), 'getwinvar(v:val, "&filetype") ==? "dbout"')
+  let himalayaout_buffers = filter(range(1, winnr('$')), 'getwinvar(v:val, "&filetype") ==? "himalayaout"')
   let extra_height = 0
-  if len(dbout_buffers)
-    let extra_height = max(map(copy(dbout_buffers), 'winheight(v:val)'))
+  if len(himalayaout_buffers)
+    let extra_height = max(map(copy(himalayaout_buffers), 'winheight(v:val)'))
     let extra_height += 1
   endif
   let max_row = &lines - 3 - extra_height
@@ -277,4 +277,4 @@ function! s:hide_notifications() abort
   endif
 endfunction
 
-command DBUIHideNotifications call s:hide_notifications()
+command HIMALAYAUIHideNotifications call s:hide_notifications()

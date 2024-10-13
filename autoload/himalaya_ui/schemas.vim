@@ -34,7 +34,7 @@ let s:postgres_list_schema_query = "
     \   and pg_catalog.has_schema_privilege(current_user, nspname, 'USAGE')
     \ order by nspname"
 
-if empty(g:db_ui_use_postgres_views)
+if empty(g:himalaya_ui_use_postgres_views)
   let postgres_tables_and_views = "
         \ SELECT table_schema, table_name FROM information_schema.tables ;"
 else
@@ -83,7 +83,7 @@ let s:sqlserver = {
       \   'cell_line_pattern': '^-\+.-\+',
       \   'parse_results': {results, min_len -> s:results_parser(results[0:-3], '|', min_len)},
       \   'quote': 0,
-      \   'default_scheme': 'dbo',
+      \   'default_scheme': 'himalayao',
       \ }
 
 let s:mysql_foreign_key_query =  "
@@ -120,7 +120,7 @@ let s:oracle_args = join(
 function! s:get_oracle_queries()
   let common_condition = ""
 
-  if !g:db_ui_is_oracle_legacy
+  if !g:himalaya_ui_is_oracle_legacy
     let common_condition = "AND U.common = 'NO'"
   endif
 
@@ -180,28 +180,28 @@ let s:oracle = {
       \   'filetype': 'plsql',
       \ }
 
-if get(g:, 'dbext_default_ORA_bin', '') == 'sql'
+if get(g:, 'himalayaext_default_ORA_bin', '') == 'sql'
   let s:oracle.parse_results = {results, min_len -> s:results_parser(s:strip_quotes(results[3:]), ',', min_len)}
   let s:oracle.parse_virtual_results = {results, min_len -> s:results_parser(s:strip_quotes(results[3:]), ',', min_len)}
 endif
 
-if !exists('g:db_adapter_bigquery_region')
-  let g:db_adapter_bigquery_region = 'region-us'
+if !exists('g:himalaya_adapter_bigquery_region')
+  let g:himalaya_adapter_bigquery_region = 'region-us'
 endif
 
 let s:bigquery_schemas_query = printf("
       \ SELECT schema_name FROM `%s`.INFORMATION_SCHEMA.SCHEMATA
-      \ ", g:db_adapter_bigquery_region)
+      \ ", g:himalaya_adapter_bigquery_region)
 
 let s:bigquery_schema_tables_query = printf("
       \ SELECT table_schema, table_name
       \ FROM `%s`.INFORMATION_SCHEMA.TABLES
-      \ ", g:db_adapter_bigquery_region)
+      \ ", g:himalaya_adapter_bigquery_region)
 
-let s:db_adapter_bigquery_max_results = 100000
+let s:himalaya_adapter_bigquery_max_results = 100000
 let s:bigquery = {
       \ 'callable': 'filter',
-      \ 'args': ['--format=csv', '--max_rows=' .. s:db_adapter_bigquery_max_results],
+      \ 'args': ['--format=csv', '--max_rows=' .. s:himalaya_adapter_bigquery_max_results],
       \ 'schemes_query': s:bigquery_schemas_query,
       \ 'schemes_tables_query': s:bigquery_schema_tables_query,
       \ 'parse_results': {results, min_len -> s:results_parser(results[1:], ',', min_len)},
@@ -215,47 +215,47 @@ let s:schemas = {
       \ 'postgresql': s:postgresql,
       \ 'sqlserver': s:sqlserver,
       \ 'mysql': s:mysql,
-      \ 'mariadb': s:mysql,
+      \ 'mariahimalaya': s:mysql,
       \ 'oracle': s:oracle,
       \ 'bigquery': s:bigquery,
       \ }
 
-if !exists('g:db_adapter_postgres')
-  let g:db_adapter_postgres = 'db#adapter#postgresql#'
+if !exists('g:himalaya_adapter_postgres')
+  let g:himalaya_adapter_postgres = 'himalaya#adapter#postgresql#'
 endif
 
-if !exists('g:db_adapter_sqlite3')
-  let g:db_adapter_sqlite3 = 'db#adapter#sqlite#'
+if !exists('g:himalaya_adapter_sqlite3')
+  let g:himalaya_adapter_sqlite3 = 'himalaya#adapter#sqlite#'
 endif
 
-function! db_ui#schemas#get(scheme) abort
+function! himalaya_ui#schemas#get(scheme) abort
   return get(s:schemas, a:scheme, {})
 endfunction
 
-function! s:format_query(db, scheme, query) abort
-  let conn = type(a:db) == v:t_string ? a:db : a:db.conn
+function! s:format_query(himalaya, scheme, query) abort
+  let conn = type(a:himalaya) == v:t_string ? a:himalaya : a:himalaya.conn
   let callable = get(a:scheme, 'callable', 'interactive')
-  let cmd = db#adapter#dispatch(conn, callable) + get(a:scheme, 'args', [])
+  let cmd = himalaya#adapter#dispatch(conn, callable) + get(a:scheme, 'args', [])
   if get(a:scheme, 'requires_stdin', v:false)
     return [cmd, a:query]
   endif
   return [cmd + [a:query], '']
 endfunction
 
-function! db_ui#schemas#query(db, scheme, query) abort
-  let result = call('db#systemlist', s:format_query(a:db, a:scheme, a:query))
+function! himalaya_ui#schemas#query(himalaya, scheme, query) abort
+  let result = call('himalaya#systemlist', s:format_query(a:himalaya, a:scheme, a:query))
   return map(result, {_, val -> substitute(val, "\r$", "", "")})
 endfunction
 
-function db_ui#schemas#supports_schemes(scheme, parsed_url)
+function himalaya_ui#schemas#supports_schemes(scheme, parsed_url)
   let schema_support = !empty(get(a:scheme, 'schemes_query', 0))
   if empty(schema_support)
     return 0
   endif
   let scheme_name = tolower(get(a:parsed_url, 'scheme', ''))
-  " Mysql and MariaDB should not show schemas if the path (database name) is
+  " Mysql and MariaHIMALAYA should not show schemas if the path (database name) is
   " defined
-  if (scheme_name ==? 'mysql' || scheme_name ==? 'mariadb') && a:parsed_url.path !=? '/'
+  if (scheme_name ==? 'mysql' || scheme_name ==? 'mariahimalaya') && a:parsed_url.path !=? '/'
     return 0
   endif
 

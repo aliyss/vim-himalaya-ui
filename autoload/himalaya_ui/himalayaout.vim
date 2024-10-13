@@ -1,9 +1,9 @@
-function! db_ui#dbout#jump_to_foreign_table() abort
-  let db_url = b:db.db_url
-  let parsed = db#url#parse(db_url)
-  let scheme = db_ui#schemas#get(parsed.scheme)
+function! himalaya_ui#himalayaout#jump_to_foreign_table() abort
+  let himalaya_url = b:himalaya.himalaya_url
+  let parsed = himalaya#url#parse(himalaya_url)
+  let scheme = himalaya_ui#schemas#get(parsed.scheme)
   if empty(scheme)
-    return db_ui#notifications#error(parsed.scheme.' scheme not supported for foreign key jump.')
+    return himalaya_ui#notifications#error(parsed.scheme.' scheme not supported for foreign key jump.')
   endif
 
   let cell_line_number = s:get_cell_line_number(scheme)
@@ -16,19 +16,19 @@ function! db_ui#dbout#jump_to_foreign_table() abort
 
   let foreign_key_query = substitute(scheme.foreign_key_query, '{col_name}', field_name, '')
   let Parser = get(scheme, 'parse_virtual_results', scheme.parse_results)
-  let result = Parser(db_ui#schemas#query(db_url, scheme, foreign_key_query), 3)
+  let result = Parser(himalaya_ui#schemas#query(himalaya_url, scheme, foreign_key_query), 3)
 
   if empty(result)
-    return db_ui#notifications#error('No valid foreign key found.')
+    return himalaya_ui#notifications#error('No valid foreign key found.')
   endif
 
   let [foreign_table_name, foreign_column_name,foreign_table_schema] = result[0]
-  let query = printf(scheme.select_foreign_key_query, foreign_table_schema, foreign_table_name, foreign_column_name, db_ui#utils#quote_query_value(field_value))
+  let query = printf(scheme.select_foreign_key_query, foreign_table_schema, foreign_table_name, foreign_column_name, himalaya_ui#utils#quote_query_value(field_value))
 
-  exe 'DB '.query
+  exe 'HIMALAYA '.query
 endfunction
 
-function! db_ui#dbout#foldexpr(lnum) abort
+function! himalaya_ui#himalayaout#foldexpr(lnum) abort
   if getline(a:lnum) !~? '^[[:blank:]]*$'
     " Mysql
     if getline(a:lnum) =~? '^+---' && getline(a:lnum + 2) =~? '^+---'
@@ -52,11 +52,11 @@ function! db_ui#dbout#foldexpr(lnum) abort
   return -1
 endfunction
 
-function! db_ui#dbout#get_cell_value() abort
-  let parsed = db#url#parse(db_ui#resolve(b:db))
-  let scheme = db_ui#schemas#get(parsed.scheme)
+function! himalaya_ui#himalayaout#get_cell_value() abort
+  let parsed = himalaya#url#parse(himalaya_ui#resolve(b:himalaya))
+  let scheme = himalaya_ui#schemas#get(parsed.scheme)
   if empty(scheme)
-    return db_ui#notifications#error('Yanking cell value not supported for '.parsed.scheme.' scheme.')
+    return himalaya_ui#notifications#error('Yanking cell value not supported for '.parsed.scheme.' scheme.')
   endif
 
   let cell_line_number = s:get_cell_line_number(scheme)
@@ -78,17 +78,17 @@ function! db_ui#dbout#get_cell_value() abort
   let &selection = old_selection
 endfunction
 
-function! db_ui#dbout#toggle_layout() abort
-  let parsed = db#url#parse(db_ui#resolve(b:db))
-  let scheme = db_ui#schemas#get(parsed.scheme)
+function! himalaya_ui#himalayaout#toggle_layout() abort
+  let parsed = himalaya#url#parse(himalaya_ui#resolve(b:himalaya))
+  let scheme = himalaya_ui#schemas#get(parsed.scheme)
   if !has_key(scheme, 'layout_flag')
-    return db_ui#notifications#error('Toggling layout not supported for '.parsed.scheme.' scheme.')
+    return himalaya_ui#notifications#error('Toggling layout not supported for '.parsed.scheme.' scheme.')
   endif
-  let content = join(readfile(b:db.input), "\n")
-  let expanded_layout = get(b:, 'db_ui_expanded_layout', 0)
+  let content = join(readfile(b:himalaya.input), "\n")
+  let expanded_layout = get(b:, 'himalaya_ui_expanded_layout', 0)
 
   if expanded_layout
-    let b:db_ui_expanded_layout = !expanded_layout
+    let b:himalaya_ui_expanded_layout = !expanded_layout
     norm R
     return
   endif
@@ -96,18 +96,18 @@ function! db_ui#dbout#toggle_layout() abort
   let content = substitute(content, ';\?$', ' '.scheme.layout_flag, '')
   let tmp = tempname()
   call writefile(split(content, "\n"), tmp)
-  let old_db_input = b:db.input
-  let b:db.input = tmp
+  let old_himalaya_input = b:himalaya.input
+  let b:himalaya.input = tmp
   norm R
-  let b:db.input = old_db_input
-  let b:db_ui_expanded_layout = !expanded_layout
+  let b:himalaya.input = old_himalaya_input
+  let b:himalaya_ui_expanded_layout = !expanded_layout
 endfunction
 
-function! db_ui#dbout#yank_header() abort
-  let parsed = db#url#parse(db_ui#resolve(b:db))
-  let scheme = db_ui#schemas#get(parsed.scheme)
+function! himalaya_ui#himalayaout#yank_header() abort
+  let parsed = himalaya#url#parse(himalaya_ui#resolve(b:himalaya))
+  let scheme = himalaya_ui#schemas#get(parsed.scheme)
   if empty(scheme)
-    return db_ui#notifications#error('Yanking headers not supported for '.parsed.scheme.' scheme.')
+    return himalaya_ui#notifications#error('Yanking headers not supported for '.parsed.scheme.' scheme.')
   endif
 
   let cell_line_number = s:get_cell_line_number(scheme)
@@ -332,13 +332,13 @@ endfunction
 
 
 if exists('*nvim_open_win') || exists('*popup_create')
-  if empty(g:db_ui_disable_progress_bar)
-    augroup dbui_async_queries_dbout
+  if empty(g:himalaya_ui_disable_progress_bar)
+    augroup himalayaui_async_queries_himalayaout
       autocmd!
-      autocmd User DBQueryPre call s:progress_show()
-      autocmd User DBQueryPost call s:progress_hide()
-      autocmd User *DBExecutePre call s:progress_show(expand('<amatch>:h'))
-      autocmd User *DBExecutePost call s:progress_hide(expand('<amatch>:h'))
+      autocmd User HIMALAYAQueryPre call s:progress_show()
+      autocmd User HIMALAYAQueryPost call s:progress_hide()
+      autocmd User *HIMALAYAExecutePre call s:progress_show(expand('<amatch>:h'))
+      autocmd User *HIMALAYAExecutePost call s:progress_hide(expand('<amatch>:h'))
     augroup END
   endif
 endif

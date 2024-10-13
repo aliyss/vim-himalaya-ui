@@ -1,12 +1,12 @@
 let s:connections_instance = {}
 let s:connections = {}
 
-function! db_ui#connections#new(drawer)
+function! himalaya_ui#connections#new(drawer)
   let s:connections_instance = s:connections.new(a:drawer)
   return s:connections_instance
 endfunction
 
-function! db_ui#connections#add() abort
+function! himalaya_ui#connections#add() abort
   if empty(s:connections_instance)
     let s:connections_instance = s:connections.new({})
   endif
@@ -23,21 +23,21 @@ function! s:connections.new(drawer) abort
 endfunction
 
 function! s:connections.add() abort
-  if empty(g:db_ui_save_location)
-    return db_ui#notifications#error('Please set up valid save location via g:db_ui_save_location')
+  if empty(g:himalaya_ui_save_location)
+    return himalaya_ui#notifications#error('Please set up valid save location via g:himalaya_ui_save_location')
   endif
 
   return self.add_full_url()
 endfunction
 
-function! s:connections.delete(db) abort
-  let confirm_delete = confirm(printf('Are you sure you want to delete connection %s?', a:db.name), "&Yes\n&No\n&Cancel")
+function! s:connections.delete(himalaya) abort
+  let confirm_delete = confirm(printf('Are you sure you want to delete connection %s?', a:himalaya.name), "&Yes\n&No\n&Cancel")
   if confirm_delete !=? 1
     return
   endif
 
   let file = self.read()
-  call filter(file, {i, conn -> !(conn.name ==? a:db.name && db_ui#resolve(conn.url) ==? db_ui#resolve(a:db.url) )})
+  call filter(file, {i, conn -> !(conn.name ==? a:himalaya.name && himalaya_ui#resolve(conn.url) ==? himalaya_ui#resolve(a:himalaya.url) )})
   return self.write(file)
 endfunction
 
@@ -45,31 +45,31 @@ function! s:connections.add_full_url() abort
   let url = ''
 
   try
-    let url = db_ui#resolve(db_ui#utils#input('Enter connection url: ', url))
-    call db#url#parse(url)
+    let url = himalaya_ui#resolve(himalaya_ui#utils#input('Enter connection url: ', url))
+    call himalaya#url#parse(url)
   catch /.*/
-    return db_ui#notifications#error(v:exception)
+    return himalaya_ui#notifications#error(v:exception)
   endtry
 
   try
-    let name = self.enter_db_name(url)
+    let name = self.enter_himalaya_name(url)
   catch /.*/
-    return db_ui#notifications#error(v:exception)
+    return himalaya_ui#notifications#error(v:exception)
   endtry
 
   return self.save(name, url)
 endfunction
 
-function! s:connections.rename(db) abort
-  if a:db.source !=? 'file'
-    return db_ui#notifications#error('Cannot edit connections added via variables.')
+function! s:connections.rename(himalaya) abort
+  if a:himalaya.source !=? 'file'
+    return himalaya_ui#notifications#error('Cannot edit connections added via variables.')
   endif
 
   let connections = copy(self.read())
   let idx = 0
   let entry = {}
   for conn in connections
-    if conn.name ==? a:db.name && db_ui#resolve(conn.url) ==? a:db.url
+    if conn.name ==? a:himalaya.name && himalaya_ui#resolve(conn.url) ==? a:himalaya.url
       let entry = conn
       break
     endif
@@ -78,21 +78,21 @@ function! s:connections.rename(db) abort
 
   let url = entry.url
   try
-    let url = db_ui#resolve(db_ui#utils#input('Edit connection url for "'.entry.name.'": ', url))
-    call db#url#parse(url)
+    let url = himalaya_ui#resolve(himalaya_ui#utils#input('Edit connection url for "'.entry.name.'": ', url))
+    call himalaya#url#parse(url)
   catch /.*/
-    return db_ui#notifications#error(v:exception)
+    return himalaya_ui#notifications#error(v:exception)
   endtry
 
   let name = ''
 
   try
-    let name = db_ui#utils#input('Edit connection name: ', entry.name)
+    let name = himalaya_ui#utils#input('Edit connection name: ', entry.name)
     if empty(trim(name))
       throw 'Please enter valid name.'
     endif
   catch /.*/
-    return db_ui#notifications#error(v:exception)
+    return himalaya_ui#notifications#error(v:exception)
   endtry
 
   call remove(connections, idx)
@@ -100,8 +100,8 @@ function! s:connections.rename(db) abort
   return self.write(connections)
 endfunction
 
-function! s:connections.enter_db_name(url) abort
-  let name = db_ui#utils#input('Enter name: ', split(a:url, '/')[-1])
+function! s:connections.enter_himalaya_name(url) abort
+  let name = himalaya_ui#utils#input('Enter name: ', split(a:url, '/')[-1])
 
   if empty(trim(name))
     throw 'Please enter valid name.'
@@ -111,7 +111,7 @@ function! s:connections.enter_db_name(url) abort
 endfunction
 
 function! s:connections.get_file() abort
-  let save_folder = substitute(fnamemodify(g:db_ui_save_location, ':p'), '\/$', '', '')
+  let save_folder = substitute(fnamemodify(g:himalaya_ui_save_location, ':p'), '\/$', '', '')
   return printf('%s/%s', save_folder, 'connections.json')
 endfunction
 
@@ -130,7 +130,7 @@ function s:connections.save(name, url) abort
   let file = self.read()
   let existing_connection = filter(copy(file), 'v:val.name ==? a:name')
   if !empty(existing_connection)
-    call db_ui#notifications#error('Connection with that name already exists. Please enter different name.')
+    call himalaya_ui#notifications#error('Connection with that name already exists. Please enter different name.')
     return 0
   endif
   call add(file, {'name': a:name, 'url': a:url})
@@ -138,13 +138,13 @@ function s:connections.save(name, url) abort
 endfunction
 
 function! s:connections.read() abort
-  return db_ui#utils#readfile(self.get_file())
+  return himalaya_ui#utils#readfile(self.get_file())
 endfunction
 
 function! s:connections.write(file) abort
   call writefile([json_encode(a:file)], self.get_file())
   if !empty(self.drawer)
-    call self.drawer.render({ 'dbs': 1 })
+    call self.drawer.render({ 'himalayas': 1 })
   endif
   return 1
 endfunction

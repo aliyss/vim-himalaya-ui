@@ -25,7 +25,7 @@ let s:postgres = {
       \ }
 
 let s:sqlite = {
-      \ 'List': g:db_ui_default_query,
+      \ 'List': g:himalaya_ui_default_query,
       \ 'Columns': "SELECT * FROM pragma_table_info('{table}')",
       \ 'Indexes': "SELECT * FROM pragma_index_list('{table}')",
       \ 'Foreign Keys': "SELECT * FROM pragma_foreign_key_list('{table}')",
@@ -186,16 +186,16 @@ let s:helpers = {
       \ 'bigquery': s:bigquery,
       \ 'postgresql': s:postgres,
       \ 'mysql': s:mysql,
-      \ 'mariadb': s:mysql,
+      \ 'mariahimalaya': s:mysql,
       \ 'oracle': s:oracle,
       \ 'sqlite': s:sqlite,
       \ 'sqlserver': s:sqlserver,
-      \ 'mongodb': { 'List': '{table}.find()'},
+      \ 'mongohimalaya': { 'List': '{table}.find()'},
       \  }
 
 let s:all = {}
 
-for scheme in db#adapter#schemes()
+for scheme in himalaya#adapter#schemes()
   let s:all[scheme] = get(s:helpers, scheme, {})
 endfor
 
@@ -209,10 +209,10 @@ let s:scheme_map = {
       \ 'sqlite': 'sqlite3',
       \ }
 
-function! db_ui#table_helpers#get(scheme) abort
-  let result = extend(get(s:all, a:scheme, { 'List': '' }), get(g:db_ui_table_helpers, a:scheme, {}))
+function! himalaya_ui#table_helpers#get(scheme) abort
+  let result = extend(get(s:all, a:scheme, { 'List': '' }), get(g:himalaya_ui_table_helpers, a:scheme, {}))
   if has_key(s:scheme_map, a:scheme)
-    let result = extend(result, get(g:db_ui_table_helpers, s:scheme_map[a:scheme], {}))
+    let result = extend(result, get(g:himalaya_ui_table_helpers, s:scheme_map[a:scheme], {}))
   endif
 
   return result
