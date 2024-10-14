@@ -21,7 +21,7 @@ function! himalaya_ui#utils#request_json_sync(opts) abort
   let cmd = call('printf', [g:himalaya_executable . config . ' --output json ' . a:opts.cmd] + args)
   try
     let content = himalaya_ui#job#start(cmd)
-    let parsed_content = json_decode(content[0])
+    let parsed_content = json_decode(join(content))
     return parsed_content
   catch /.*/
     call himalaya_ui#notifications#warning([

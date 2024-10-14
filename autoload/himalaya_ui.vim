@@ -90,8 +90,8 @@ function! himalaya_ui#get_conn_info(himalaya_key_name) abort
   let himalaya = s:himalayaui_instance.himalayas[a:himalaya_key_name]
   call s:himalayaui_instance.connect(himalaya)
   return {
-        \ 'url': himalaya.url,
-        \ 'conn': himalaya.conn,
+        \ 'backend': himalaya.backend,
+        \ 'account': himalaya.account,
         \ 'tables': himalaya.tables.list,
         \ 'schemas': himalaya.schemas.list,
         \ 'scheme': himalaya.scheme,
@@ -209,9 +209,9 @@ endfunction
 
 function! s:himalayaui.populate_himalayas() abort
   let self.himalayas_list = []
-  call self.populate_from_dotenv()
-  call self.populate_from_env()
-  call self.populate_from_global_variable()
+  " call self.populate_from_dotenv()
+  " call self.populate_from_env()
+  " call self.populate_from_global_variable()
   call self.populate_from_himalaya()
 
   for himalaya in self.himalayas_list
@@ -230,7 +230,7 @@ endfunction
 function! s:himalayaui.generate_new_himalaya_entry(himalaya) abort
   let himalaya = {
         \ 'backend': a:himalaya.backend,
-        \ 'conn': '',
+        \ 'account': a:himalaya.name,
         \ 'conn_error': '',
         \ 'conn_tried': 0,
         \ 'source': a:himalaya.backend,
@@ -238,6 +238,7 @@ function! s:himalayaui.generate_new_himalaya_entry(himalaya) abort
         \ 'table_helpers': {},
         \ 'expanded': 0,
         \ 'tables': {'expanded': 0 , 'items': {}, 'list': [] },
+        \ 'folders': {'expanded': 0 , 'items': {}, 'list': [] },
         \ 'schemas': {'expanded': 0, 'items': {}, 'list': [] },
         \ 'saved_queries': { 'expanded': 0, 'list': [] },
         \ 'buffers': { 'expanded': 0, 'list': [], 'tmp': [] },
@@ -364,7 +365,6 @@ function! s:himalayaui.populate_from_himalaya() abort
     call self.add_if_not_exists(account.name, account.backend, account.default)
   endfor
 
-  echom self
   return self
 endfunction
 
@@ -386,20 +386,19 @@ function! s:himalayaui.is_tmp_location_buffer(himalaya, buf) abort
 endfunction
 
 function! s:himalayaui.connect(himalaya) abort
-  if !empty(a:himalaya.conn)
+  if !empty(a:himalaya.account)
     return a:himalaya
   endif
 
   try
     let query_time = reltime()
     call himalaya_ui#notifications#info('Connecting to himalaya '.a:himalaya.name.'...')
-    let a:himalaya.conn = himalaya#connect(a:himalaya.url)
     let a:himalaya.conn_error = ''
-    call self.populate_schema_info(a:himalaya)
+    call self.populate_folder_info(a:himalaya)
     call himalaya_ui#notifications#info('Connected to himalaya '.a:himalaya.name.' after '.split(reltimestr(reltime(query_time)))[0].' sec.')
   catch /.*/
     let a:himalaya.conn_error = v:exception
-    let a:himalaya.conn = ''
+    let a:himalaya.account = ''
     call himalaya_ui#notifications#error('Error connecting to himalaya '.a:himalaya.name.': '.v:exception, {'width': 80 })
   endtry
 
@@ -423,6 +422,9 @@ function! s:himalayaui.populate_schema_info(himalaya) abort
   if a:himalaya.filetype ==? 'js'
     let a:himalaya.filetype = 'javascript'
   endif
+endfunction
+
+function! s:himalayaui.populate_folder_info(himalaya) abort
 endfunction
 
 " Resolve only urls for HIMALAYAs that are files

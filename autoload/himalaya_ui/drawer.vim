@@ -232,7 +232,7 @@ function! s:drawer.rename_buffer(buffer, himalaya_key_name, is_saved_query) abor
 
   if new_bufnr > - 1
     call setbufvar(new_bufnr, 'himalayaui_himalaya_key_name', himalaya.key_name)
-    call setbufvar(new_bufnr, 'himalaya', himalaya.conn)
+    call setbufvar(new_bufnr, 'himalaya', himalaya.account)
     call setbufvar(new_bufnr, 'himalayaui_himalaya_table_name', getbufvar(a:buffer, 'himalayaui_himalaya_table_name'))
     call setbufvar(new_bufnr, 'himalayaui_bind_params', getbufvar(a:buffer, 'himalayaui_bind_params'))
   endif
@@ -410,7 +410,7 @@ function! s:drawer.add_himalaya(himalaya) abort
   let himalaya_name = a:himalaya.name
   if !empty(a:himalaya.conn_error)
     let himalaya_name .= ' '.g:himalaya_ui_icons.connection_error
-  elseif !empty(a:himalaya.conn)
+  elseif !empty(a:himalaya.account)
     let himalaya_name .= ' '.g:himalaya_ui_icons.connection_ok
   endif
   if self.show_details
@@ -455,8 +455,8 @@ function! s:drawer.add_himalaya(himalaya) abort
       endfor
     endif
   else
-    call self.add('Tables ('.len(a:himalaya.tables.items).')', 'toggle', 'tables', self.get_toggle_icon('tables', a:himalaya.tables), a:himalaya.key_name, 1, { 'expanded': a:himalaya.tables.expanded })
-    call self.render_tables(a:himalaya.tables, a:himalaya, 'tables->items', 2, '')
+    call self.add('Folders ('.len(a:himalaya.folders.items).')', 'toggle', 'folders', self.get_toggle_icon('folders', a:himalaya.folders), a:himalaya.key_name, 1, { 'expanded': a:himalaya.folders.expanded })
+    call self.render_folders(a:himalaya.folders, a:himalaya, 'folders->items', 2, '')
   endif
 endfunction
 
@@ -470,6 +470,23 @@ function! s:drawer.render_tables(tables, himalaya, path, level, schema) abort
       for [helper_name, helper] in items(a:himalaya.table_helpers)
         call self.add(helper_name, 'open', 'table', g:himalaya_ui_icons.tables, a:himalaya.key_name, a:level + 1, {'table': table, 'content': helper, 'schema': a:schema })
       endfor
+    endif
+  endfor
+endfunction
+
+function! s:drawer.render_folders(folders, himalaya, path, level, schema) abort
+  if !a:folders.expanded
+    return
+  endif
+  for folder in a:folders.list
+    call self.add(folder.name, 'toggle', a:path.'->'.folder.name, self.get_toggle_icon('folders', a:folders.items[folder.name]), a:himalaya.key_name, a:level, { 'expanded': a:folders.items[folder.name].expanded })
+    if a:folders.items[folder.name].expanded
+      call self.add("List E-Mail", 'open', 'folder', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': "", 'schema': a:schema })
+      call self.add("Rename Folder", 'open', 'folder', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': "", 'schema': a:schema })
+      call self.add("Delete Folder", 'open', 'folder', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': "", 'schema': a:schema })
+      " for [helper_name, helper] in items(a:himalaya.folder_helpers)
+      "   call self.add(helper_name, 'open', 'folder', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': helper, 'schema': a:schema })
+      " endfor
     endif
   endfor
 endfunction
@@ -581,19 +598,19 @@ function! s:drawer.toggle_himalaya(himalaya) abort
 
   call self.himalayaui.connect(a:himalaya)
 
-  if !empty(a:himalaya.conn)
+  if !empty(a:himalaya.account)
     call self.populate(a:himalaya)
   endif
 endfunction
 
 function! s:drawer.populate(himalaya) abort
-  if empty(a:himalaya.conn) && a:himalaya.conn_tried
+  if empty(a:himalaya.account) && a:himalaya.conn_tried
     call self.himalayaui.connect(a:himalaya)
   endif
   if a:himalaya.schema_support
     return self.populate_schemas(a:himalaya)
   endif
-  return self.populate_tables(a:himalaya)
+  return self.populate_folders(a:himalaya)
 endfunction
 
 function! s:drawer.load_saved_queries(himalaya) abort
@@ -603,37 +620,45 @@ function! s:drawer.load_saved_queries(himalaya) abort
 endfunction
 
 function! s:drawer.populate_tables(himalaya) abort
-  let a:himalaya.tables.list = []
-  if empty(a:himalaya.conn)
+  let a:himalaya.folders.list = []
+  if empty(a:himalaya.account)
     return a:himalaya
   endif
 
-  let tables = himalaya#adapter#call(a:himalaya.conn, 'tables', [a:himalaya.conn], [])
+  let folders = himalaya_ui#utils#request_json_sync({
+  \ 'cmd': 'folder list --account %s',
+  \ 'args': [shellescape(a:himalaya.account)],
+  \ 'msg': 'Listing folders...',
+  \})
 
-  let a:himalaya.tables.list = tables
-  " Fix issue with sqlite tables listing as strings with spaces
-  if a:himalaya.scheme =~? '^sqlite' && len(a:himalaya.tables.list) >=? 0
-    let temp_table_list = []
+  let a:himalaya.folders.list = folders
 
-    for table_index in a:himalaya.tables.list
-      let temp_table_list += map(split(copy(table_index)), 'trim(v:val)')
-    endfor
-
-    let a:himalaya.tables.list = sort(temp_table_list)
-  endif
-
-  if a:himalaya.scheme =~? '^mysql'
-    call filter(a:himalaya.tables.list, 'v:val !~? "mysql: [Warning\\]" && v:val !~? "Tables_in_"')
-  endif
-
-  call self.populate_table_items(a:himalaya.tables)
+  call self.populate_folder_items(a:himalaya.folders)
   return a:himalaya
 endfunction
 
-function! s:drawer.populate_table_items(tables) abort
-  for table in a:tables.list
-    if !has_key(a:tables.items, table)
-      let a:tables.items[table] = {'expanded': 0 }
+function! s:drawer.populate_folders(himalaya) abort
+  let a:himalaya.folders.list = []
+  if empty(a:himalaya.account)
+    return a:himalaya
+  endif
+
+  let folders = himalaya_ui#utils#request_json_sync({
+  \ 'cmd': 'folder list --account %s',
+  \ 'args': [shellescape(a:himalaya.account)],
+  \ 'msg': 'Listing folders...',
+  \})
+
+  let a:himalaya.folders.list = folders
+
+  call self.populate_folder_items(a:himalaya.folders)
+  return a:himalaya
+endfunction
+
+function! s:drawer.populate_folder_items(folders) abort
+  for folder in a:folders.list
+    if !has_key(a:folders.items, folder.name)
+      let a:folders.items[folder.name] = {'expanded': 0 }
     endif
   endfor
 endfunction
@@ -663,7 +688,7 @@ function! s:drawer.populate_schemas(himalaya) abort
     if !has_key(a:himalaya.schemas.items, schema)
       let a:himalaya.schemas.items[schema] = {
             \ 'expanded': 0,
-            \ 'tables': {
+            \ 'folders': {
             \   'expanded': 1,
             \   'list': [],
             \   'items': {},
