@@ -52,8 +52,8 @@ function! s:query.generate_buffer_name(himalaya, opts) abort
 
   let buffer_name = himalaya_ui#utils#slug(printf('%s-%s', a:himalaya.name, suffix))
   let buffer_name = printf('%s-%s', buffer_name, time)
-  if type(g:Db_ui_buffer_name_generator) ==? type(function('tr'))
-    let buffer_name = printf('%s-%s', a:himalaya.name, call(g:Db_ui_buffer_name_generator, [a:opts]))
+  if type(g:himalaya_ui_buffer_name_generator) ==? type(function('tr'))
+    let buffer_name = printf('%s-%s', a:himalaya.name, call(g:himalaya_ui_buffer_name_generator, [a:opts]))
   endif
 
   if !empty(self.drawer.himalayaui.tmp_location)

@@ -821,8 +821,8 @@ g:himalaya_ui_hide_schemas
 <
 		Default value: `[]`
 
-					      *g:Db_ui_buffer_name_generator*
-g:Db_ui_buffer_name_generator
+					      *g:himalaya_ui_buffer_name_generator*
+g:himalaya_ui_buffer_name_generator
 		Custom function for generating buffer names from drawer.
 		Function accepts the option with three properties:
 		* label - label of the entry you selected.
@@ -845,7 +845,7 @@ g:Db_ui_buffer_name_generator
 		  return 'myquery-fortable-'.a:opts.table.'-'.localtime()
 		endfunction
 
-		let g:Db_ui_buffer_name_generator = function('s:buffer_name_generator')
+		let g:himalaya_ui_buffer_name_generator = function('s:buffer_name_generator')
 <
 
 		Default value: `0`

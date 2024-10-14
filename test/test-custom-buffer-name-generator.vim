@@ -6,7 +6,7 @@ function! s:suite.before() abort
 endfunction
 
 function! s:suite.after() abort
-  call UnsetOptionVariable('Db_ui_buffer_name_generator')
+  call UnsetOptionVariable('himalaya_ui_buffer_name_generator')
   call Cleanup()
 endfunction
 
@@ -23,7 +23,7 @@ function! s:suite.should_use_custom_icons() abort
   norm ojo
   :DBUI
   call s:expect(getline(4)).to_match('^    '.g:db_ui_icons.buffers.' query-.*$')
-  call SetOptionVariable('Db_ui_buffer_name_generator', function('s:name_generator'))
+  call SetOptionVariable('himalaya_ui_buffer_name_generator', function('s:name_generator'))
   norm ggjo
   :DBUI
   call s:expect(getline(5)).to_match('^    '.g:db_ui_icons.buffers.' query-from-test-suite-\d\+\.sql\s\*$')

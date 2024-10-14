@@ -30,7 +30,7 @@ himalaya-ui.txt	himalaya-ui.txt	/*himalaya-ui.txt*
 himalaya_ui#connections_list()	himalaya-ui.txt	/*himalaya_ui#connections_list()*
 himalaya_ui#query()	himalaya-ui.txt	/*himalaya_ui#query()*
 himalaya_ui#statusline()	himalaya-ui.txt	/*himalaya_ui#statusline()*
-g:Db_ui_buffer_name_generator	himalaya-ui.txt	/*g:Db_ui_buffer_name_generator*
+g:himalaya_ui_buffer_name_generator	himalaya-ui.txt	/*g:himalaya_ui_buffer_name_generator*
 g:himalaya_ui_auto_execute_table_helpers	himalaya-ui.txt	/*g:himalaya_ui_auto_execute_table_helpers*
 g:himalaya_ui_bind_param_pattern	himalaya-ui.txt	/*g:himalaya_ui_bind_param_pattern*
 g:himalaya_ui_debug	himalaya-ui.txt	/*g:himalaya_ui_debug*
