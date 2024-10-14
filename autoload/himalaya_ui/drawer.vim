@@ -414,7 +414,7 @@ function! s:drawer.add_himalaya(himalaya) abort
     let himalaya_name .= ' '.g:himalaya_ui_icons.connection_ok
   endif
   if self.show_details
-    let himalaya_name .= ' ('.a:himalaya.scheme.' - '.a:himalaya.source.')'
+    let himalaya_name .= ' ('.a:himalaya.backend.')'
   endif
   call self.add(himalaya_name, 'toggle', 'himalaya', self.get_toggle_icon('himalaya', a:himalaya), a:himalaya.key_name, 0, { 'expanded': a:himalaya.expanded })
   if !a:himalaya.expanded
@@ -422,6 +422,7 @@ function! s:drawer.add_himalaya(himalaya) abort
   endif
 
   call self.add('New query', 'open', 'query', g:himalaya_ui_icons.new_query, a:himalaya.key_name, 1)
+  call self.add('Create E-Mail', 'open', 'email', g:himalaya_ui_icons.new_query, a:himalaya.key_name, 1)
   if !empty(a:himalaya.buffers.list)
     call self.add('Buffers ('.len(a:himalaya.buffers.list).')', 'toggle', 'buffers', self.get_toggle_icon('buffers', a:himalaya.buffers), a:himalaya.key_name, 1, { 'expanded': a:himalaya.buffers.expanded })
     if a:himalaya.buffers.expanded
