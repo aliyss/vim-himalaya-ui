@@ -30,6 +30,22 @@ function! himalaya_ui#utils#request_json_sync(opts) abort
   endtry
 endfunction
 
+function! himalaya_ui#utils#request_plain_sync(opts) abort
+  let args = get(a:opts, 'args', [])
+  call himalaya#log#info(printf('%s…', a:opts.msg))
+  let config = exists('g:himalaya_config_path') ? ' --config ' . g:himalaya_config_path : ''
+  let cmd = call('printf', [g:himalaya_executable . config . ' --output plain ' . a:opts.cmd] + args)
+
+  try
+    let content = himalaya_ui#job#start(cmd)
+    return content
+  catch /.*/
+    call himalaya_ui#notifications#warning([
+          \ 'Error executing command.',
+          \ ])
+  endtry
+endfunction
+
 function! himalaya_ui#utils#readfile(file) abort
   try
     let content = readfile(a:file)

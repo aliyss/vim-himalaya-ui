@@ -422,8 +422,7 @@ function! s:drawer.add_himalaya(himalaya) abort
     return a:himalaya
   endif
 
-  call self.add('New list', 'open', 'list', g:himalaya_ui_icons.new_list, a:himalaya.key_name, 1)
-  call self.add('Create E-Mail', 'open', 'email', g:himalaya_ui_icons.new_list, a:himalaya.key_name, 1)
+  call self.add('Create Mail', 'open', 'email', g:himalaya_ui_icons.new_list, a:himalaya.key_name, 1)
   if !empty(a:himalaya.buffers.list)
     call self.add('Buffers ('.len(a:himalaya.buffers.list).')', 'toggle', 'buffers', self.get_toggle_icon('buffers', a:himalaya.buffers), a:himalaya.key_name, 1, { 'expanded': a:himalaya.buffers.expanded })
     if a:himalaya.buffers.expanded
@@ -482,7 +481,7 @@ function! s:drawer.render_folders(folders, himalaya, path, level, schema) abort
   for folder in a:folders.list
     call self.add(folder.name, 'toggle', a:path.'->'.folder.name, self.get_toggle_icon('folders', a:folders.items[folder.name]), a:himalaya.key_name, a:level, { 'expanded': a:folders.items[folder.name].expanded })
     if a:folders.items[folder.name].expanded
-      call self.add("List E-Mail", 'open', 'list', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': "", 'account': a:himalaya.name })
+      call self.add("List Mail", 'open', 'list', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': "", 'account': a:himalaya.name })
       call self.add("Rename Folder", 'open', 'list', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': "", 'account': a:himalaya.name })
       call self.add("Delete Folder", 'open', 'list', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': "", 'account': a:himalaya.name })
       " for [helper_name, helper] in items(a:himalaya.folder_helpers)
@@ -637,7 +636,7 @@ function! s:drawer.populate_tables(himalaya) abort
   let folders = himalaya_ui#utils#request_json_sync({
   \ 'cmd': 'folder list --account %s',
   \ 'args': [shellescape(a:himalaya.account)],
-  \ 'msg': 'Listing folders...',
+  \ 'msg': 'Listing folders',
   \})
 
   let a:himalaya.folders.list = folders
@@ -655,7 +654,7 @@ function! s:drawer.populate_folders(himalaya) abort
   let folders = himalaya_ui#utils#request_json_sync({
   \ 'cmd': 'folder list --account %s',
   \ 'args': [shellescape(a:himalaya.account)],
-  \ 'msg': 'Listing folders...',
+  \ 'msg': 'Listing folders',
   \})
 
   let a:himalaya.folders.list = folders

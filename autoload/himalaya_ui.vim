@@ -359,7 +359,7 @@ function! s:himalayaui.populate_from_himalaya() abort
   let accounts = himalaya_ui#utils#request_json_sync({
   \ 'cmd': 'account list',
   \ 'args': [],
-  \ 'msg': 'Listing accounts...',
+  \ 'msg': 'Listing accounts',
   \})
 
   for account in accounts

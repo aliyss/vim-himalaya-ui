@@ -106,6 +106,37 @@ function! s:list.focus_window() abort
   endif
 endfunction
 
+function s:list.pretty_print_list(content) abort
+  let table = []
+  let header = []
+  let max_width = {}
+  for row in a:content
+    for [key, value] in items(row)
+      let max_width[key] = max([len(key), get(max_width, key, 0)])
+      let max_width[key] = max([len(value), get(max_width, key, 0)])
+    endfor
+  endfor
+
+  for row in a:content
+    let line = []
+    for [key, value] in items(row)
+      let line += [printf('%s: %s', key, value)]
+    endfor
+    call add(table, line)
+
+    if len(header) ==? 0
+      let header = keys(row)
+    endif
+  endfor
+
+  let table = [header] + table
+  let table = map(table, {i, row -> map(copy(row), {j, col -> printf('%-'.max_width[header[j]].'s', col)})})
+  let table = map(table, {i, row -> join(row, ' | ')})
+  let table = join(table, "\n")
+
+  return table
+endfunction
+
 function s:list.open_buffer(himalaya, buffer_name, edit_action, ...) abort
   let opts = get(a:, '1', {})
   let folder = get(opts, 'folder', '')
@@ -113,28 +144,32 @@ function s:list.open_buffer(himalaya, buffer_name, edit_action, ...) abort
   let default_content = get(opts, 'content', g:himalaya_ui_default_list)
   let was_single_win = winnr('$') ==? 1
 
-  let content = himalaya_ui#utils#request_json_sync({
+  let content = himalaya_ui#utils#request_plain_sync({
   \ 'cmd': 'envelope list --folder %s --account %s',
   \ 'args': [shellescape(folder), shellescape(account)],
-  \ 'msg': 'Listing mail...',
+  \ 'msg': 'Listing mail',
   \})
 
   echom content
+  echom a:edit_action
 
   if a:edit_action ==? 'edit'
     call self.focus_window()
     let bufnr = bufnr(a:buffer_name)
     if bufnr > -1
       silent! exe 'b '.bufnr
-      call self.setup_buffer(a:himalaya, a:buffer_name, was_single_win)
-      silent 1,$delete _
+      call self.setup_buffer(a:himalaya, extend({'existing_buffer': 1 }, opts), a:buffer_name, was_single_win)
+      echom 'setting lines'
       call setline(1, split(json_encode(content), "\n"))
       return
     endif
   endif
 
+
   silent! exe a:edit_action.' '.a:buffer_name
   call self.setup_buffer(a:himalaya, opts, a:buffer_name, was_single_win)
+  echom content
+  call append(0, content)
 
   if empty(folder)
     return
@@ -149,28 +184,28 @@ function s:list.open_buffer(himalaya, buffer_name, edit_action, ...) abort
     let optional_schema = optional_schema.'.'
   endif
 
-  let content = substitute(default_content, '{table}', table, 'g')
-  let content = substitute(content, '{optional_schema}', optional_schema, 'g')
-  let content = substitute(content, '{schema}', schema, 'g')
-  let himalaya_name = !empty(schema) ? schema : a:himalaya.himalaya_name
-  let content = substitute(content, '{himalayaname}', himalaya_name, 'g')
-  let content = substitute(content, '{last_list}', join(self.last_list, "\n"), 'g')
-  silent 1,$delete _
-  call setline(1, split(content, "\n"))
-  if g:himalaya_ui_auto_execute_table_helpers
-    if g:himalaya_ui_execute_on_save
-      write
-    else
-      call self.execute_list()
-    endif
-  endif
+  " let content = substitute(default_content, '{table}', table, 'g')
+  " let content = substitute(content, '{optional_schema}', optional_schema, 'g')
+  " let content = substitute(content, '{schema}', schema, 'g')
+  " let himalaya_name = !empty(schema) ? schema : a:himalaya.himalaya_name
+  " let content = substitute(content, '{himalayaname}', himalaya_name, 'g')
+  " let content = substitute(content, '{last_list}', join(self.last_list, "\n"), 'g')
+  " silent 1,$delete _
+  " call setline(1, split(content, "\n"))
+  " if g:himalaya_ui_auto_execute_table_helpers
+  "   if g:himalaya_ui_execute_on_save
+  "     write
+  "   else
+  "     call self.execute_list()
+  "   endif
+  " endif
 endfunction
 
 function! s:list.setup_buffer(himalaya, opts, buffer_name, was_single_win) abort
   call self.resize_if_single(a:was_single_win)
   let b:himalayaui_himalaya_key_name = a:himalaya.key_name
-  let b:himalayaui_table_name = get(a:opts, 'table', '')
-  let b:himalayaui_schema_name = get(a:opts, 'schema', '')
+  let b:himalayaui_folder_name = get(a:opts, 'folder', '')
+  let b:himalayaui_account_name = get(a:opts, 'account', '')
   let b:himalaya = a:himalaya.account
   let is_existing_buffer = get(a:opts, 'existing_buffer', 0)
   let is_tmp = self.drawer.himalayaui.is_tmp_location_buffer(a:himalaya, a:buffer_name)
@@ -188,19 +223,19 @@ function! s:list.setup_buffer(himalaya, opts, buffer_name, was_single_win) abort
     silent! exe 'setlocal filetype='.a:himalaya.filetype.' nolist noswapfile nowrap nospell modifiable'
   endif
   let is_sql = &filetype ==? a:himalaya.filetype
-  nnoremap <silent><buffer><Plug>(HIMALAYAUI_EditBindParameters) :call <sid>method('edit_bind_parameters')<CR>
-  nnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :call <sid>method('execute_list')<CR>
-  vnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :<C-u>call <sid>method('execute_list', 1)<CR>
+  " nnoremap <silent><buffer><Plug>(HIMALAYAUI_EditBindParameters) :call <sid>method('edit_bind_parameters')<CR>
+  " nnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :call <sid>method('execute_list')<CR>
+  " vnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :<C-u>call <sid>method('execute_list', 1)<CR>
   if is_tmp && is_sql
-    nnoremap <silent><buffer><silent><Plug>(HIMALAYAUI_SaveQuery) :call <sid>method('save_list')<CR>
+    " nnoremap <silent><buffer><silent><Plug>(HIMALAYAUI_SaveQuery) :call <sid>method('save_list')<CR>
   endif
-  augroup himalaya_ui_list
-    autocmd! * <buffer>
-    if g:himalaya_ui_execute_on_save && is_sql
-      autocmd BufWritePost <buffer> nested call s:method('execute_list')
-    endif
-    autocmd BufDelete,BufWipeout <buffer> silent! call s:method('remove_buffer', str2nr(expand('<abuf>')))
-  augroup END
+  " augroup himalaya_ui_list
+  "   autocmd! * <buffer>
+  "   if g:himalaya_ui_execute_on_save && is_sql
+  "     autocmd BufWritePost <buffer> nested call s:method('execute_list')
+  "   endif
+  "   autocmd BufDelete,BufWipeout <buffer> silent! call s:method('remove_buffer', str2nr(expand('<abuf>')))
+  " augroup END
 endfunction
 
 function! s:method(name, ...) abort
