@@ -8,9 +8,9 @@ let g:himalaya_ui_use_postgres_views = get(g:, 'himalaya_ui_use_postgres_views',
 let g:himalaya_ui_notification_width = get(g:, 'himalaya_ui_notification_width', 40)
 let g:himalaya_ui_winwidth = get(g:, 'himalaya_ui_winwidth', 40)
 let g:himalaya_ui_win_position = get(g:, 'himalaya_ui_win_position', 'left')
-let g:himalaya_ui_default_query = get(g:, 'himalaya_ui_default_query', 'SELECT * from "{table}" LIMIT 200;')
+let g:himalaya_ui_default_list = get(g:, 'himalaya_ui_default_list', 'SELECT * from "{table}" LIMIT 200;')
 let g:himalaya_ui_save_location = get(g:, 'himalaya_ui_save_location', '~/.local/share/himalaya_ui')
-let g:himalaya_ui_tmp_query_location = get(g:, 'himalaya_ui_tmp_query_location', '')
+let g:himalaya_ui_tmp_list_location = get(g:, 'himalaya_ui_tmp_list_location', '')
 let g:himalaya_ui_dotenv_variable_prefix = get(g:, 'himalaya_ui_dotenv_variable_prefix', 'HIMALAYA_UI_')
 let g:himalaya_ui_env_variable_url = get(g:, 'himalaya_ui_env_variable_url', 'HIMALAYAUI_URL')
 let g:himalaya_ui_env_variable_name = get(g:, 'himalaya_ui_env_variable_name', 'HIMALAYAUI_NAME')
@@ -26,7 +26,7 @@ let g:himalaya_ui_use_nerd_fonts = get(g:, 'himalaya_ui_use_nerd_fonts', 0)
 let g:himalaya_ui_execute_on_save = get(g:, 'himalaya_ui_execute_on_save', 1)
 let g:himalaya_ui_force_echo_notifications = get(g:, 'himalaya_ui_force_echo_notifications', 0)
 let g:himalaya_ui_use_nvim_notify = get(g:, 'himalaya_ui_use_nvim_notify', 0)
-let g:himalaya_ui_ui_buffer_name_generator = get(g:, 'himalaya_ui_buffer_name_generator', 0)
+let g:himalaya_ui_buffer_name_generator = get(g:, 'himalaya_ui_buffer_name_generator', 0)
 let g:himalaya_ui_debug = get(g:, 'himalaya_ui_debug', 0)
 let g:himalaya_ui_hide_schemas = get(g:, 'himalaya_ui_hide_schemas', [])
 let g:himalaya_ui_bind_param_pattern = get(g: , 'himalaya_ui_bind_param_pattern', ':\w\+')
@@ -72,8 +72,8 @@ let g:himalaya_ui_icons = {
       \   'tables': s:collapsed_icon,
       \   'table': s:collapsed_icon,
       \ },
-      \ 'saved_query': '*',
-      \ 'new_query': '+',
+      \ 'saved_list': '*',
+      \ 'new_list': '+',
       \ 'folders': '~',
       \ 'tables': '~',
       \ 'buffers': '»',
@@ -104,8 +104,8 @@ if g:himalaya_ui_use_nerd_fonts
         \   'tables': s:collapsed_icon.' 󰓱',
         \   'table': s:collapsed_icon.' ',
         \ },
-        \ 'saved_query': '  ',
-        \ 'new_query': '  󰓰',
+        \ 'saved_list': '  ',
+        \ 'new_list': '  󰓰',
         \ 'tables': '  󰓫',
         \ 'folders': '  ',
         \ 'buffers': '  ',
@@ -135,4 +135,4 @@ command! HIMALAYAUIClose call himalaya_ui#close()
 command! HIMALAYAUIAddConnection call himalaya_ui#connections#add()
 command! HIMALAYAUIFindBuffer call himalaya_ui#find_buffer()
 command! HIMALAYAUIRenameBuffer call himalaya_ui#rename_buffer()
-command! HIMALAYAUILastQueryInfo call himalaya_ui#print_last_query_info()
+command! HIMALAYAUILastQueryInfo call himalaya_ui#print_last_list_info()

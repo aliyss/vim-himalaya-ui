@@ -1,5 +1,5 @@
-let s:window_instance = {}
-let s:window = {}
+let s:list_instance = {}
+let s:list = {}
 let s:bind_param_rgx = '\(^\|[[:blank:]]\|[^:]\)\('.g:himalaya_ui_bind_param_pattern.'\)'
 
 let s:window_info = {
@@ -7,65 +7,55 @@ let s:window_info = {
       \ 'last_window_time': 0
       \ }
 
-function! himalaya_ui#query#new(drawer) abort
-  let s:query_instance = s:query.new(a:drawer)
-  return s:query_instance
+function! himalaya_ui#list#new(drawer) abort
+  let s:list_instance = s:list.new(a:drawer)
+  return s:list_instance
 endfunction
 
-function! himalaya_ui#window#new(drawer) abort
-  let s:window_instance = s:window.new(a:drawer)
-  return s:window_instance
-endfunction
-
-function! s:window.new(drawer) abort
+function! s:list.new(drawer) abort
   let instance = copy(self)
   let instance.drawer = a:drawer
   let instance.buffer_counter = {}
-  let instance.last_window = []
-  augroup himalayaui_async_windows
+  let instance.last_list = []
+  augroup himalayaui_async_lists
     autocmd!
-    autocmd User *HIMALAYAExecutePre call s:start_window()
-    autocmd User *HIMALAYAExecutePost call s:print_window_time()
+    autocmd User *HIMALAYAExecutePre call s:start_list()
+    autocmd User *HIMALAYAExecutePost call s:print_list_time()
   augroup END
   return instance
 endfunction
 
-function! s:query.new(drawer) abort
-  let instance = copy(self)
-  let instance.drawer = a:drawer
-  let instance.buffer_counter = {}
-  let instance.last_query = []
-  augroup himalayaui_async_queries
-    autocmd!
-    autocmd User *HIMALAYAExecutePre call s:start_query()
-    autocmd User *HIMALAYAExecutePost call s:print_query_time()
-  augroup END
-  return instance
-endfunction
-
-function! s:query.open(item, edit_action) abort
+function! s:list.open(item, edit_action) abort
   let himalaya = self.drawer.himalayaui.himalayas[a:item.himalayaui_himalaya_key_name]
   if a:item.type ==? 'buffer'
     return self.open_buffer(himalaya, a:item.file_path, a:edit_action)
   endif
   let label = get(a:item, 'label', '')
-  let table = ''
-  let schema = ''
-  if a:item.type !=? 'query'
-    let suffix = a:item.table.'-'.a:item.label
-    let table = a:item.table
-    let schema = a:item.schema
+  let folder = ''
+  let account = ''
+  if a:item.type !=? 'list'
+    let suffix = a:item.folder.name.'-'.a:item.label
+    let folder = a:item.folder.name
+    let account = a:item.account
   endif
 
-  let buffer_name = self.generate_buffer_name(himalaya, { 'schema': schema, 'table': table, 'label': label, 'filetype': himalaya.filetype })
-  call self.open_buffer(himalaya, buffer_name, a:edit_action, {'table': table, 'content': get(a:item, 'content'), 'schema': schema })
+  let suffix = a:item.folder.name.'-'.a:item.label
+  let folder = a:item.folder.name
+  let account = a:item.account
+
+  let buffer_name = self.generate_buffer_name(himalaya, { 'account': account, 'folder': folder, 'label': label, 'filetype': himalaya.filetype })
+  call self.open_buffer(himalaya, buffer_name, a:edit_action, { 'account': account, 'folder': folder, 'label': label, 'filetype': himalaya.filetype, 'content': get(a:item, 'content') })
 endfunction
 
-function! s:query.generate_buffer_name(himalaya, opts) abort
+function! s:list.generate_buffer_name(himalaya, opts) abort
   let time = exists('*strftime') ? strftime('%Y-%m-%d-%H-%M-%S') : localtime()
-  let suffix = 'query'
-  if !empty(a:opts.table)
-    let suffix = printf('%s-%s', a:opts.table, a:opts.label)
+  let suffix = 'list'
+  if !empty(a:opts.account)
+    let suffix = printf('%s-%s', a:opts.account, a:opts.label)
+  endif
+
+  if !empty(a:opts.folder)
+    let suffix = printf('%s-%s', suffix, a:opts.folder)
   endif
 
   let buffer_name = himalaya_ui#utils#slug(printf('%s-%s', a:himalaya.name, suffix))
@@ -83,7 +73,7 @@ function! s:query.generate_buffer_name(himalaya, opts) abort
   return tmp_name
 endfunction
 
-function! s:query.focus_window() abort
+function! s:list.focus_window() abort
   let win_pos = g:himalaya_ui_win_position ==? 'left' ? 'botright' : 'topleft'
   let win_cmd = 'vertical '.win_pos.' new'
   if winnr('$') ==? 1
@@ -116,19 +106,29 @@ function! s:query.focus_window() abort
   endif
 endfunction
 
-function s:query.open_buffer(himalaya, buffer_name, edit_action, ...)
+function s:list.open_buffer(himalaya, buffer_name, edit_action, ...) abort
   let opts = get(a:, '1', {})
-  let table = get(opts, 'table', '')
-  let schema = get(opts, 'schema', '')
-  let default_content = get(opts, 'content', g:himalaya_ui_default_query)
+  let folder = get(opts, 'folder', '')
+  let account = get(opts, 'account', '')
+  let default_content = get(opts, 'content', g:himalaya_ui_default_list)
   let was_single_win = winnr('$') ==? 1
+
+  let content = himalaya_ui#utils#request_json_sync({
+  \ 'cmd': 'envelope list --folder %s --account %s',
+  \ 'args': [shellescape(folder), shellescape(account)],
+  \ 'msg': 'Listing mail...',
+  \})
+
+  echom content
 
   if a:edit_action ==? 'edit'
     call self.focus_window()
     let bufnr = bufnr(a:buffer_name)
     if bufnr > -1
       silent! exe 'b '.bufnr
-      call self.setup_buffer(a:himalaya, extend({'existing_buffer': 1 }, opts), a:buffer_name, was_single_win)
+      call self.setup_buffer(a:himalaya, a:buffer_name, was_single_win)
+      silent 1,$delete _
+      call setline(1, split(json_encode(content), "\n"))
       return
     endif
   endif
@@ -136,11 +136,11 @@ function s:query.open_buffer(himalaya, buffer_name, edit_action, ...)
   silent! exe a:edit_action.' '.a:buffer_name
   call self.setup_buffer(a:himalaya, opts, a:buffer_name, was_single_win)
 
-  if empty(table)
+  if empty(folder)
     return
   endif
 
-  let optional_schema = schema ==? a:himalaya.default_scheme ? '' : schema
+  let optional_schema = account ==? a:himalaya.default_scheme ? '' : account
 
   if !empty(optional_schema)
     if a:himalaya.quote
@@ -154,24 +154,24 @@ function s:query.open_buffer(himalaya, buffer_name, edit_action, ...)
   let content = substitute(content, '{schema}', schema, 'g')
   let himalaya_name = !empty(schema) ? schema : a:himalaya.himalaya_name
   let content = substitute(content, '{himalayaname}', himalaya_name, 'g')
-  let content = substitute(content, '{last_query}', join(self.last_query, "\n"), 'g')
+  let content = substitute(content, '{last_list}', join(self.last_list, "\n"), 'g')
   silent 1,$delete _
   call setline(1, split(content, "\n"))
   if g:himalaya_ui_auto_execute_table_helpers
     if g:himalaya_ui_execute_on_save
       write
     else
-      call self.execute_query()
+      call self.execute_list()
     endif
   endif
 endfunction
 
-function! s:query.setup_buffer(himalaya, opts, buffer_name, was_single_win) abort
+function! s:list.setup_buffer(himalaya, opts, buffer_name, was_single_win) abort
   call self.resize_if_single(a:was_single_win)
   let b:himalayaui_himalaya_key_name = a:himalaya.key_name
   let b:himalayaui_table_name = get(a:opts, 'table', '')
   let b:himalayaui_schema_name = get(a:opts, 'schema', '')
-  let b:himalaya = a:himalaya.conn
+  let b:himalaya = a:himalaya.account
   let is_existing_buffer = get(a:opts, 'existing_buffer', 0)
   let is_tmp = self.drawer.himalayaui.is_tmp_location_buffer(a:himalaya, a:buffer_name)
   let himalaya_buffers = self.drawer.himalayaui.himalayas[a:himalaya.key_name].buffers
@@ -189,15 +189,15 @@ function! s:query.setup_buffer(himalaya, opts, buffer_name, was_single_win) abor
   endif
   let is_sql = &filetype ==? a:himalaya.filetype
   nnoremap <silent><buffer><Plug>(HIMALAYAUI_EditBindParameters) :call <sid>method('edit_bind_parameters')<CR>
-  nnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :call <sid>method('execute_query')<CR>
-  vnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :<C-u>call <sid>method('execute_query', 1)<CR>
+  nnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :call <sid>method('execute_list')<CR>
+  vnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :<C-u>call <sid>method('execute_list', 1)<CR>
   if is_tmp && is_sql
-    nnoremap <silent><buffer><silent><Plug>(HIMALAYAUI_SaveQuery) :call <sid>method('save_query')<CR>
+    nnoremap <silent><buffer><silent><Plug>(HIMALAYAUI_SaveQuery) :call <sid>method('save_list')<CR>
   endif
-  augroup himalaya_ui_query
+  augroup himalaya_ui_list
     autocmd! * <buffer>
     if g:himalaya_ui_execute_on_save && is_sql
-      autocmd BufWritePost <buffer> nested call s:method('execute_query')
+      autocmd BufWritePost <buffer> nested call s:method('execute_list')
     endif
     autocmd BufDelete,BufWipeout <buffer> silent! call s:method('remove_buffer', str2nr(expand('<abuf>')))
   augroup END
@@ -205,13 +205,13 @@ endfunction
 
 function! s:method(name, ...) abort
   if a:0 > 0
-    return s:query_instance[a:name](a:1)
+    return s:list_instance[a:name](a:1)
   endif
 
-  return s:query_instance[a:name]()
+  return s:list_instance[a:name]()
 endfunction
 
-function! s:query.resize_if_single(is_single_win) abort
+function! s:list.resize_if_single(is_single_win) abort
   if a:is_single_win
     exe self.drawer.get_winnr().'wincmd w'
     exe 'vertical resize '.g:himalaya_ui_winwidth
@@ -219,7 +219,7 @@ function! s:query.resize_if_single(is_single_win) abort
   endif
 endfunction
 
-function! s:query.remove_buffer(bufnr)
+function! s:list.remove_buffer(bufnr)
   let himalayaui_himalaya_key_name = getbufvar(a:bufnr, 'himalayaui_himalaya_key_name')
   let list = self.drawer.himalayaui.himalayas[himalayaui_himalaya_key_name].buffers.list
   let tmp = self.drawer.himalayaui.himalayas[himalayaui_himalaya_key_name].buffers.tmp
@@ -228,10 +228,10 @@ function! s:query.remove_buffer(bufnr)
   return self.drawer.render()
 endfunction
 
-function! s:query.execute_query(...) abort
+function! s:list.execute_list(...) abort
   let is_visual_mode = get(a:, 1, 0)
   let lines = self.get_lines(is_visual_mode)
-  call s:start_query()
+  call s:start_list()
   if !is_visual_mode && search(s:bind_param_rgx, 'n') <= 0
     call himalaya_ui#utils#print_debug({ 'message': 'Executing whole buffer', 'command': '%HIMALAYA' })
     silent! exe '%HIMALAYA'
@@ -241,16 +241,16 @@ function! s:query.execute_query(...) abort
   endif
   let has_async = exists('*himalaya#cancel')
   if has_async
-    call himalaya_ui#notifications#info('Executing query...')
+    call himalaya_ui#notifications#info('Executing list...')
   endif
   if !has_async
-    call s:print_query_time()
+    call s:print_list_time()
   endif
-  let self.last_query = lines
+  let self.last_list = lines
 endfunction
 
-function! s:query.execute_lines(himalaya, lines, is_visual_mode) abort
-  let filename = tempname().'.'.himalaya#adapter#call(a:himalaya.conn, 'input_extension', [], 'sql')
+function! s:list.execute_lines(himalaya, lines, is_visual_mode) abort
+  let filename = tempname().'.'.himalaya#adapter#call(a:himalaya.account, 'input_extension', [], 'sql')
   let lines = copy(a:lines)
   let should_inject_vars = match(join(a:lines), s:bind_param_rgx) > -1
 
@@ -280,7 +280,7 @@ function! s:query.execute_lines(himalaya, lines, is_visual_mode) abort
   return lines
 endfunction
 
-function! s:query.get_lines(is_visual_mode) abort
+function! s:list.get_lines(is_visual_mode) abort
   if !a:is_visual_mode
     return getline(1, '$')
   endif
@@ -295,7 +295,7 @@ function! s:query.get_lines(is_visual_mode) abort
   return lines
 endfunction
 
-function! s:query.inject_variables(lines) abort
+function! s:list.inject_variables(lines) abort
   let vars = []
   for line in a:lines
     call substitute(line, s:bind_param_rgx, '\=add(vars, submatch(2))', 'g')
@@ -328,7 +328,7 @@ function! s:query.inject_variables(lines) abort
       if trim(val) ==? ''
         continue
       endif
-      let line = substitute(line, var, himalaya_ui#utils#quote_query_value(val), 'g')
+      let line = substitute(line, var, himalaya_ui#utils#quote_list_value(val), 'g')
     endfor
     call add(content, line)
   endfor
@@ -336,7 +336,7 @@ function! s:query.inject_variables(lines) abort
   return content
 endfunction
 
-function! s:query.edit_bind_parameters() abort
+function! s:list.edit_bind_parameters() abort
   if !exists('b:himalayaui_bind_params') || empty(b:himalayaui_bind_params)
     return himalaya_ui#notifications#info('No bind parameters to edit.')
   endif
@@ -376,7 +376,7 @@ function! s:query.edit_bind_parameters() abort
   return himalaya_ui#notifications#info('Canceled')
 endfunction
 
-function! s:query.save_query() abort
+function! s:list.save_list() abort
   try
     let himalaya = self.drawer.himalayaui.himalayas[b:himalayaui_himalaya_key_name]
     if empty(himalaya.save_path)
@@ -404,21 +404,21 @@ function! s:query.save_query() abort
     endif
 
     exe 'write '.full_name
-    call self.drawer.render({ 'queries': 1 })
+    call self.drawer.render({ 'lists': 1 })
     call self.open_buffer(himalaya, full_name, 'edit')
   catch /.*/
     return himalaya_ui#notifications#error(v:exception)
   endtry
 endfunction
 
-function! s:query.get_last_query_info() abort
+function! s:list.get_last_list_info() abort
   return {
-        \ 'last_query': self.last_query,
-        \ 'last_query_time': s:query_info.last_query_time
+        \ 'last_list': self.last_list,
+        \ 'last_list_time': s:list_info.last_list_time
         \ }
 endfunction
 
-function! s:query.get_saved_query_himalaya_name() abort
+function! s:list.get_saved_list_himalaya_name() abort
   let himalayaui = self.drawer.himalayaui
   if !empty(himalayaui.tmp_location) && himalayaui.tmp_location ==? expand('%:p:h')
     let filename = expand('%:t')
@@ -437,14 +437,14 @@ function! s:query.get_saved_query_himalaya_name() abort
   return ''
 endfunction
 
-function s:start_query() abort
-  let s:query_info.last_query_start_time = reltime()
+function s:start_list() abort
+  let s:list_info.last_list_start_time = reltime()
 endfunction
 
-function s:print_query_time() abort
-  if empty(s:query_info.last_query_start_time)
+function s:print_list_time() abort
+  if empty(s:list_info.last_list_start_time)
     return
   endif
-  let s:query_info.last_query_time = split(reltimestr(reltime(s:query_info.last_query_start_time)))[0]
-  call himalaya_ui#notifications#info('Done after '.s:query_info.last_query_time.' sec.')
+  let s:list_info.last_list_time = split(reltimestr(reltime(s:list_info.last_list_start_time)))[0]
+  call himalaya_ui#notifications#info('Done after '.s:list_info.last_list_time.' sec.')
 endfunction

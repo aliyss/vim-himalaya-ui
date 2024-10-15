@@ -17,7 +17,8 @@ function! s:drawer.new(himalayaui) abort
   let instance.show_help = 0
   let instance.show_himalayaout_list = 0
   let instance.content = []
-  let instance.query = {}
+  let instance.list = {}
+  let instance.window = {}
   let instance.connections = {}
 
   return instance
@@ -41,8 +42,8 @@ function! s:drawer.open(...) abort
   call self.render()
   nnoremap <silent><buffer> <Plug>(HIMALAYAUI_SelectLine) :call <sid>method('toggle_line', 'edit')<CR>
   nnoremap <silent><buffer> <Plug>(HIMALAYAUI_DeleteLine) :call <sid>method('delete_line')<CR>
-  let query_win_pos = g:himalaya_ui_win_position ==? 'left' ? 'botright' : 'topleft'
-  silent! exe "nnoremap <silent><buffer> <Plug>(HIMALAYAUI_SelectLineVsplit) :call <sid>method('toggle_line', 'vertical ".query_win_pos." split')<CR>"
+  let list_win_pos = g:himalaya_ui_win_position ==? 'left' ? 'botright' : 'topleft'
+  silent! exe "nnoremap <silent><buffer> <Plug>(HIMALAYAUI_SelectLineVsplit) :call <sid>method('toggle_line', 'vertical ".list_win_pos." split')<CR>"
   nnoremap <silent><buffer> <Plug>(HIMALAYAUI_Redraw) :call <sid>method('redraw')<CR>
   nnoremap <silent><buffer> <Plug>(HIMALAYAUI_AddConnection) :call <sid>method('add_connection')<CR>
   nnoremap <silent><buffer> <Plug>(HIMALAYAUI_ToggleDetails) :call <sid>method('toggle_details')<CR>
@@ -178,7 +179,7 @@ function s:drawer.get_current_item() abort
   return self.content[line('.') - 1]
 endfunction
 
-function! s:drawer.rename_buffer(buffer, himalaya_key_name, is_saved_query) abort
+function! s:drawer.rename_buffer(buffer, himalaya_key_name, is_saved_list) abort
   let bufnr = bufnr(a:buffer)
   let current_win = winnr()
   let current_ft = &filetype
@@ -194,7 +195,7 @@ function! s:drawer.rename_buffer(buffer, himalaya_key_name, is_saved_query) abor
   let bufwin = bufwinnr(bufnr)
   let himalaya = self.himalayaui.himalayas[a:himalaya_key_name]
   let himalaya_slug = himalaya_ui#utils#slug(himalaya.name)
-  let is_saved = a:is_saved_query || !self.himalayaui.is_tmp_location_buffer(himalaya, a:buffer)
+  let is_saved = a:is_saved_list || !self.himalayaui.is_tmp_location_buffer(himalaya, a:buffer)
   let old_name = self.get_buffer_name(himalaya, a:buffer)
 
   try
@@ -218,7 +219,7 @@ function! s:drawer.rename_buffer(buffer, himalaya_key_name, is_saved_query) abor
   let new_bufnr = -1
 
   if bufwin > -1
-    call self.get_query().open_buffer(himalaya, new, 'edit')
+    call self.get_list().open_buffer(himalaya, new, 'edit')
     let new_bufnr = bufnr('%')
   elseif bufnr > -1
     exe 'badd '.new
@@ -311,18 +312,18 @@ function! s:drawer.render(...) abort
   endif
 
   if get(opts, 'himalayas', 0)
-    let query_time = reltime()
+    let list_time = reltime()
     call himalaya_ui#notifications#info('Refreshing all databases...')
     call self.himalayaui.populate_himalayas()
-    call himalaya_ui#notifications#info('Refreshed all databases after '.split(reltimestr(reltime(query_time)))[0].' sec.')
+    call himalaya_ui#notifications#info('Refreshed all databases after '.split(reltimestr(reltime(list_time)))[0].' sec.')
   endif
 
   if !empty(get(opts, 'himalaya_key_name', ''))
     let himalaya = self.himalayaui.himalayas[opts.himalaya_key_name]
     call himalaya_ui#notifications#info('Refreshing database '.himalaya.name.'...')
-    let query_time = reltime()
+    let list_time = reltime()
     let self.himalayaui.himalayas[opts.himalaya_key_name] = self.populate(himalaya)
-    call himalaya_ui#notifications#info('Refreshed database '.himalaya.name.' after '.split(reltimestr(reltime(query_time)))[0].' sec.')
+    call himalaya_ui#notifications#info('Refreshed database '.himalaya.name.' after '.split(reltimestr(reltime(list_time)))[0].' sec.')
   endif
 
   redraw!
@@ -386,14 +387,14 @@ function! s:drawer.render_help() abort
     call self.add('" R - Redraw', 'noaction', 'help', '', '', 0)
     call self.add('" A - Add connection', 'noaction', 'help', '', '', 0)
     call self.add('" H - Toggle database details', 'noaction', 'help', '', '', 0)
-    call self.add('" r - Rename/Edit buffer/connection/saved query', 'noaction', 'help', '', '', 0)
+    call self.add('" r - Rename/Edit buffer/connection/saved list', 'noaction', 'help', '', '', 0)
     call self.add('" q - Close drawer', 'noaction', 'help', '', '', 0)
     call self.add('" <C-j>/<C-k> - Go to last/first sibling', 'noaction', 'help', '', '', 0)
     call self.add('" K/J - Go to prev/next sibling', 'noaction', 'help', '', '', 0)
     call self.add('" <C-p>/<C-n> - Go to parent/child node', 'noaction', 'help', '', '', 0)
-    call self.add('" <Leader>W - (sql) Save currently opened query', 'noaction', 'help', '', '', 0)
-    call self.add('" <Leader>E - (sql) Edit bind parameters in opened query', 'noaction', 'help', '', '', 0)
-    call self.add('" <Leader>S - (sql) Execute query in visual or normal mode', 'noaction', 'help', '', '', 0)
+    call self.add('" <Leader>W - (sql) Save currently opened list', 'noaction', 'help', '', '', 0)
+    call self.add('" <Leader>E - (sql) Edit bind parameters in opened list', 'noaction', 'help', '', '', 0)
+    call self.add('" <Leader>S - (sql) Execute list in visual or normal mode', 'noaction', 'help', '', '', 0)
     call self.add('" <C-]> - (.himalayaout) Go to entry from foreign key cell', 'noaction', 'help', '', '', 0)
     call self.add('" <motion>ic - (.himalayaout) Operator pending mapping for cell value', 'noaction', 'help', '', '', 0)
     call self.add('" <Leader>R - (.himalayaout) Toggle expanded view', 'noaction', 'help', '', '', 0)
@@ -421,8 +422,8 @@ function! s:drawer.add_himalaya(himalaya) abort
     return a:himalaya
   endif
 
-  call self.add('New query', 'open', 'query', g:himalaya_ui_icons.new_query, a:himalaya.key_name, 1)
-  call self.add('Create E-Mail', 'open', 'email', g:himalaya_ui_icons.new_query, a:himalaya.key_name, 1)
+  call self.add('New list', 'open', 'list', g:himalaya_ui_icons.new_list, a:himalaya.key_name, 1)
+  call self.add('Create E-Mail', 'open', 'email', g:himalaya_ui_icons.new_list, a:himalaya.key_name, 1)
   if !empty(a:himalaya.buffers.list)
     call self.add('Buffers ('.len(a:himalaya.buffers.list).')', 'toggle', 'buffers', self.get_toggle_icon('buffers', a:himalaya.buffers), a:himalaya.key_name, 1, { 'expanded': a:himalaya.buffers.expanded })
     if a:himalaya.buffers.expanded
@@ -437,8 +438,8 @@ function! s:drawer.add_himalaya(himalaya) abort
   endif
   call self.add('Saved queries ('.len(a:himalaya.saved_queries.list).')', 'toggle', 'saved_queries', self.get_toggle_icon('saved_queries', a:himalaya.saved_queries), a:himalaya.key_name, 1, { 'expanded': a:himalaya.saved_queries.expanded })
   if a:himalaya.saved_queries.expanded
-    for saved_query in a:himalaya.saved_queries.list
-      call self.add(fnamemodify(saved_query, ':t'), 'open', 'buffer', g:himalaya_ui_icons.saved_query, a:himalaya.key_name, 2, { 'file_path': saved_query, 'saved': 1 })
+    for saved_list in a:himalaya.saved_queries.list
+      call self.add(fnamemodify(saved_list, ':t'), 'open', 'buffer', g:himalaya_ui_icons.saved_list, a:himalaya.key_name, 2, { 'file_path': saved_list, 'saved': 1 })
     endfor
   endif
 
@@ -481,9 +482,9 @@ function! s:drawer.render_folders(folders, himalaya, path, level, schema) abort
   for folder in a:folders.list
     call self.add(folder.name, 'toggle', a:path.'->'.folder.name, self.get_toggle_icon('folders', a:folders.items[folder.name]), a:himalaya.key_name, a:level, { 'expanded': a:folders.items[folder.name].expanded })
     if a:folders.items[folder.name].expanded
-      call self.add("List E-Mail", 'open', 'folder', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': "", 'schema': a:schema })
-      call self.add("Rename Folder", 'open', 'folder', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': "", 'schema': a:schema })
-      call self.add("Delete Folder", 'open', 'folder', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': "", 'schema': a:schema })
+      call self.add("List E-Mail", 'open', 'list', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': "", 'account': a:himalaya.name })
+      call self.add("Rename Folder", 'open', 'list', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': "", 'account': a:himalaya.name })
+      call self.add("Delete Folder", 'open', 'list', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': "", 'account': a:himalaya.name })
       " for [helper_name, helper] in items(a:himalaya.folder_helpers)
       "   call self.add(helper_name, 'open', 'folder', g:himalaya_ui_icons.folders, a:himalaya.key_name, a:level + 1, {'folder': folder, 'content': helper, 'schema': a:schema })
       " endfor
@@ -502,13 +503,13 @@ function! s:drawer.toggle_line(edit_action) abort
   endif
 
   if item.type ==? 'himalayaout'
-    call self.get_query().focus_window()
+    call self.get_list().focus_window()
     silent! exe 'pedit' item.file_path
     return
   endif
 
   if item.action ==? 'open'
-    return self.get_query().open(item, a:edit_action)
+    return self.new_window().open(item, a:edit_action)
   endif
 
   let himalaya = self.himalayaui.himalayas[item.himalayaui_himalaya_key_name]
@@ -527,11 +528,19 @@ function! s:drawer.toggle_line(edit_action) abort
   return self.render()
 endfunction
 
-function! s:drawer.get_query() abort
-  if empty(self.query)
-    let self.query = himalaya_ui#query#new(self)
+
+function! s:drawer.new_window() abort
+  if empty(self.window)
+    let self.window = himalaya_ui#list#new(self)
   endif
-  return self.query
+  return self.window
+endfunction
+
+function! s:drawer.get_list() abort
+  if empty(self.list)
+    let self.list = himalaya_ui#list#new(self)
+  endif
+  return self.list
 endfunction
 
 function! s:drawer.delete_line() abort
@@ -556,7 +565,7 @@ function! s:drawer.delete_line() abort
   let himalaya = self.himalayaui.himalayas[item.himalayaui_himalaya_key_name]
 
   if has_key(item, 'saved')
-    let choice = confirm('Are you sure you want to delete this saved query?', "&Yes\n&No")
+    let choice = confirm('Are you sure you want to delete this saved list?', "&Yes\n&No")
     if choice !=? 1
       return
     endif
@@ -568,7 +577,7 @@ function! s:drawer.delete_line() abort
   endif
 
   if self.himalayaui.is_tmp_location_buffer(himalaya, item.file_path)
-    let choice = confirm('Are you sure you want to delete query?', "&Yes\n&No")
+    let choice = confirm('Are you sure you want to delete list?', "&Yes\n&No")
     if choice !=? 1
       return
     endif
@@ -669,8 +678,8 @@ function! s:drawer.populate_schemas(himalaya) abort
     return a:himalaya
   endif
   let scheme = himalaya_ui#schemas#get(a:himalaya.scheme)
-  let schemas = scheme.parse_results(himalaya_ui#schemas#query(a:himalaya, scheme, scheme.schemes_query), 1)
-  let tables = scheme.parse_results(himalaya_ui#schemas#query(a:himalaya, scheme, scheme.schemes_tables_query), 2)
+  let schemas = scheme.parse_results(himalaya_ui#schemas#list(a:himalaya, scheme, scheme.schemes_list), 1)
+  let tables = scheme.parse_results(himalaya_ui#schemas#list(a:himalaya, scheme, scheme.schemes_tables_list), 2)
   let schemas = filter(schemas, {i, v -> !self._is_schema_ignored(v)})
   let tables_by_schema = {}
   for [scheme_name, table] in tables

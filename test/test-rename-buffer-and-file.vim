@@ -1,4 +1,4 @@
-let s:suite = themis#suite('Rename buffer and saved query')
+let s:suite = themis#suite('Rename buffer and saved list')
 let s:expect = themis#helper('expect')
 
 function! s:suite.before() abort
@@ -29,25 +29,25 @@ function! s:suite.should_rename_buffer() abort
   call s:expect(getline('.')).to_equal('    '.g:db_ui_icons.buffers.' custom-buffer-name *')
 endfunction
 
-function! s:suite.should_rename_saved_query() abort
+function! s:suite.should_rename_saved_list() abort
   function! db_ui#utils#input(name, val)
     if a:name ==? 'Save as: '
-      return 'saved_query.sql'
+      return 'saved_list.sql'
     endif
     if a:name ==? 'Enter new name: '
-      return 'new_query_name.sql'
+      return 'new_list_name.sql'
     endif
   endfunction
   normal o
   normal ,W
-  call s:expect(filereadable(printf('%s/%s/%s', g:db_ui_save_location, 'dadbod_ui_test', 'saved_query.sql'))).to_be_true()
+  call s:expect(filereadable(printf('%s/%s/%s', g:db_ui_save_location, 'dadbod_ui_test', 'saved_list.sql'))).to_be_true()
   :DBUI
   /Saved queries
   norm oj
   normal r
-  call s:expect(filereadable(printf('%s/%s/%s', g:db_ui_save_location, 'dadbod_ui_test', 'new_query_name.sql'))).to_be_true()
-  call s:expect(filereadable(printf('%s/%s/%s', g:db_ui_save_location, 'dadbod_ui_test', 'saved_query.sql'))).to_be_false()
-  call s:expect(search('new_query_name.sql')).to_be_greater_than(0)
+  call s:expect(filereadable(printf('%s/%s/%s', g:db_ui_save_location, 'dadbod_ui_test', 'new_list_name.sql'))).to_be_true()
+  call s:expect(filereadable(printf('%s/%s/%s', g:db_ui_save_location, 'dadbod_ui_test', 'saved_list.sql'))).to_be_false()
+  call s:expect(search('new_list_name.sql')).to_be_greater_than(0)
 endfunction
 
 function! s:suite.should_rename_current_buffer() abort

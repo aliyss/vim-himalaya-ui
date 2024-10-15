@@ -20,8 +20,8 @@ hi default link himalayaui_connection_source Comment
 hi default link himalayaui_help Comment
 hi default link himalayaui_help_key String
 hi default link himalayaui_add_connection Directory
-hi default link himalayaui_saved_query String
-hi default link himalayaui_new_query Operator
+hi default link himalayaui_saved_list String
+hi default link himalayaui_new_list Operator
 hi default link himalayaui_buffers Constant
 hi default link himalayaui_tables Constant
 if &background ==? 'light'

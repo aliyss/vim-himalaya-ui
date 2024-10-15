@@ -38,8 +38,8 @@ function! himalaya_ui#find_buffer() abort
   endif
 
   if !exists('b:himalayaui_himalaya_key_name')
-    let saved_query_himalaya = s:himalayaui_instance.drawer.get_query().get_saved_query_himalaya_name()
-    let himalaya = s:get_himalaya(saved_query_himalaya)
+    let saved_list_himalaya = s:himalayaui_instance.drawer.get_list().get_saved_list_himalaya_name()
+    let himalaya = s:get_himalaya(saved_list_himalaya)
     if empty(himalaya)
       return himalaya_ui#notifications#error('No database entries selected or found.')
     endif
@@ -50,13 +50,13 @@ function! himalaya_ui#find_buffer() abort
   endif
 
   if !exists('b:himalayaui_himalaya_key_name')
-    return himalaya_ui#notifications#error('Unable to find in HIMALAYAUI. Not a valid himalayaui query buffer.')
+    return himalaya_ui#notifications#error('Unable to find in HIMALAYAUI. Not a valid himalayaui list buffer.')
   endif
 
   let himalaya = b:himalayaui_himalaya_key_name
   let bufname = bufname('%')
 
-  call s:himalayaui_instance.drawer.get_query().setup_buffer(s:himalayaui_instance.himalayas[himalaya], { 'existing_buffer': 1 }, bufname, 0)
+  call s:himalayaui_instance.drawer.get_list().setup_buffer(s:himalayaui_instance.himalayas[himalaya], { 'existing_buffer': 1 }, bufname, 0)
   if exists('*vim_dahimalayaod_completion#fetch')
     call vim_dahimalayaod_completion#fetch(bufnr(''))
   endif
@@ -99,7 +99,7 @@ function! himalaya_ui#get_conn_info(himalaya_key_name) abort
         \ }
 endfunction
 
-function! himalaya_ui#query(query) abort
+function! himalaya_ui#list(list) abort
   if empty(b:himalaya)
     throw 'Cannot find valid connection for a buffer.'
   endif
@@ -110,20 +110,20 @@ function! himalaya_ui#query(query) abort
     throw 'Unsupported scheme '.parsed.scheme
   endif
 
-  let result = himalaya_ui#schemas#query(b:himalaya, scheme, a:query)
+  let result = himalaya_ui#schemas#list(b:himalaya, scheme, a:list)
 
   return scheme.parse_results(result, 0)
 endfunction
 
-function! himalaya_ui#print_last_query_info() abort
+function! himalaya_ui#print_last_list_info() abort
   call s:init()
-  let info = s:himalayaui_instance.drawer.get_query().get_last_query_info()
-  if empty(info.last_query)
+  let info = s:himalayaui_instance.drawer.get_list().get_last_list_info()
+  if empty(info.last_list)
     return himalaya_ui#notifications#info('No queries ran.')
   endif
 
-  let content = ['Last query:'] + info.last_query
-  let content += ['' + 'Time: '.info.last_query_time.' sec.']
+  let content = ['Last list:'] + info.last_list
+  let content += ['' + 'Time: '.info.last_list_time.' sec.']
 
   return himalaya_ui#notifications#info(content, {'echo': 1})
 endfunction
@@ -135,10 +135,10 @@ function! himalaya_ui#statusline(...)
     return ''
   end
   if &filetype ==? 'himalayaout'
-    let last_query_info = s:himalayaui_instance.drawer.get_query().get_last_query_info()
-    let last_query_time = last_query_info.last_query_time
-    if !empty(last_query_time)
-      return 'Last query time: '.last_query_time.' sec.'
+    let last_list_info = s:himalayaui_instance.drawer.get_list().get_last_list_info()
+    let last_list_time = last_list_info.last_list_time
+    if !empty(last_list_time)
+      return 'Last list time: '.last_list_time.' sec.'
     endif
     return ''
   endif
@@ -176,8 +176,8 @@ function! s:himalayaui.new() abort
     let instance.connections_path = printf('%s/%s', instance.save_path, 'connections.json')
   endif
 
-  if !empty(g:himalaya_ui_tmp_query_location)
-    let tmp_loc = substitute(fnamemodify(g:himalaya_ui_tmp_query_location, ':p'), '\/$', '', '')
+  if !empty(g:himalaya_ui_tmp_list_location)
+    let tmp_loc = substitute(fnamemodify(g:himalaya_ui_tmp_list_location, ':p'), '\/$', '', '')
     if !isdirectory(tmp_loc)
       call mkdir(tmp_loc, 'p')
     endif
@@ -215,8 +215,8 @@ function! s:himalayaui.populate_himalayas() abort
   call self.populate_from_himalaya()
 
   for himalaya in self.himalayas_list
-    let key_name = printf('%s_%s', himalaya.name, himalaya.backend)
-    if !has_key(self.himalayas, key_name) || himalaya.backend !=? self.himalayas[key_name].backend
+    let key_name = printf('%s_%s', himalaya.name, himalaya.default)
+    if !has_key(self.himalayas, key_name) || himalaya.default !=? self.himalayas[key_name].default
       let new_entry = self.generate_new_himalaya_entry(himalaya)
       if !empty(new_entry)
         let self.himalayas[key_name] = new_entry
@@ -231,6 +231,7 @@ function! s:himalayaui.generate_new_himalaya_entry(himalaya) abort
   let himalaya = {
         \ 'backend': a:himalaya.backend,
         \ 'account': a:himalaya.name,
+        \ 'default': a:himalaya.default,
         \ 'conn_error': '',
         \ 'conn_tried': 0,
         \ 'source': a:himalaya.backend,
@@ -245,7 +246,7 @@ function! s:himalayaui.generate_new_himalaya_entry(himalaya) abort
         \ 'save_path': "",
         \ 'himalaya_name': a:himalaya.name,
         \ 'name': a:himalaya.name,
-        \ 'key_name': printf('%s_%s', a:himalaya.name, a:himalaya.backend),
+        \ 'key_name': printf('%s_%s', a:himalaya.name, a:himalaya.default),
         \ 'schema_support': 0,
         \ 'quote': 0,
         \ 'default_scheme': '',
@@ -371,10 +372,10 @@ endfunction
 function! s:himalayaui.add_if_not_exists(name, backend, default) abort
   let existing = get(filter(copy(self.himalayas_list), 'v:val.name ==? a:name && v:val.backend ==? a:backend'), 0, {})
   if !empty(existing)
-    return himalaya_ui#notifications#warning(printf('Warning: Duplicate connection name "%s" in "%s" backend. First one added has precedence.', a:name, a:backend))
+    return himalaya_ui#notifications#warning(printf('Warning: Duplicate connection name "%s" in "%s" backend. First one added has precedence.', a:name, a:default))
   endif
   return add(self.himalayas_list, {
-        \ 'name': a:name, 'backend': a:backend, 'default': a:default, 'key_name': printf('%s_%s', a:name, a:backend)
+        \ 'name': a:name, 'backend': a:backend, 'default': a:default, 'key_name': printf('%s_%s', a:name, a:default)
         \ })
 endfunction
 
@@ -391,11 +392,11 @@ function! s:himalayaui.connect(himalaya) abort
   endif
 
   try
-    let query_time = reltime()
+    let list_time = reltime()
     call himalaya_ui#notifications#info('Connecting to himalaya '.a:himalaya.name.'...')
     let a:himalaya.conn_error = ''
     call self.populate_folder_info(a:himalaya)
-    call himalaya_ui#notifications#info('Connected to himalaya '.a:himalaya.name.' after '.split(reltimestr(reltime(query_time)))[0].' sec.')
+    call himalaya_ui#notifications#info('Connected to himalaya '.a:himalaya.name.' after '.split(reltimestr(reltime(list_time)))[0].' sec.')
   catch /.*/
     let a:himalaya.conn_error = v:exception
     let a:himalaya.account = ''
@@ -430,7 +431,7 @@ endfunction
 " Resolve only urls for HIMALAYAs that are files
 function himalaya_ui#resolve(url) abort
   let parsed_url = himalaya#url#parse(a:url)
-  let resolve_schemes = ['sqlite', 'jq', 'duckhimalaya', 'osquery']
+  let resolve_schemes = ['sqlite', 'jq', 'duckhimalaya', 'oslist']
 
   if index(resolve_schemes, get(parsed_url, 'scheme', '')) > -1
     return himalaya#resolve(a:url)
@@ -451,13 +452,13 @@ function! s:init() abort
   return s:himalayaui_instance
 endfunction
 
-function! s:get_himalaya(saved_query_himalaya) abort
+function! s:get_himalaya(saved_list_himalaya) abort
   if !len(s:himalayaui_instance.himalayas_list)
     return {}
   endif
 
-  if !empty(a:saved_query_himalaya)
-    let saved_himalaya = get(filter(copy(s:himalayaui_instance.himalayas_list), 'v:val.name ==? a:saved_query_himalaya'), 0, {})
+  if !empty(a:saved_list_himalaya)
+    let saved_himalaya = get(filter(copy(s:himalayaui_instance.himalayas_list), 'v:val.name ==? a:saved_list_himalaya'), 0, {})
     if empty(saved_himalaya)
       return {}
     endif

@@ -207,8 +207,8 @@ These are the default icons used:
 let g:db_ui_icons = {
     \ 'expanded': '▾',
     \ 'collapsed': '▸',
-    \ 'saved_query': '*',
-    \ 'new_query': '+',
+    \ 'saved_list': '*',
+    \ 'new_list': '+',
     \ 'tables': '~',
     \ 'buffers': '»',
     \ 'connection_ok': '✓',
