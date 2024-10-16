@@ -1,7 +1,17 @@
+
+
 if exists('g:loaded_himalayaui')
   finish
 endif
+
 let g:loaded_himalayaui = 1
+
+let default_executable = 'himalaya'
+let g:himalaya_executable = get(g:, 'himalaya_executable', default_executable)
+
+if !executable(g:himalaya_executable)
+  throw 'Himalaya CLI not found, see https://pimalaya.org/himalaya/cli/latest/installation/'
+endif
 
 let g:himalaya_ui_disable_progress_bar = get(g:, 'himalaya_ui_disable_progress_bar', 0)
 let g:himalaya_ui_use_postgres_views = get(g:, 'himalaya_ui_use_postgres_views', 1)

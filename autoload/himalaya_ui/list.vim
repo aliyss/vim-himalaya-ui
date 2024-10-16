@@ -44,7 +44,7 @@ function! s:list.open(item, edit_action) abort
   let account = a:item.account
 
   let buffer_name = self.generate_buffer_name(himalaya, { 'account': account, 'folder': folder, 'label': label, 'filetype': himalaya.filetype })
-  call self.open_buffer(himalaya, buffer_name, a:edit_action, { 'account': account, 'folder': folder, 'label': label, 'filetype': himalaya.filetype, 'content': get(a:item, 'content') })
+  call self.open_buffer(himalaya, buffer_name, a:edit_action, { 'account': account, 'folder': folder, 'label': label, 'filetype': "himalaya-email-listing", 'content': get(a:item, 'content') })
 endfunction
 
 function! s:list.generate_buffer_name(himalaya, opts) abort
@@ -137,6 +137,27 @@ function s:list.pretty_print_list(content) abort
   return table
 endfunction
 
+
+function! s:bufwidth(bufnr) abort " https://newbedev.com/get-usable-window-width-in-vim-script
+  let width = winwidth(a:bufnr)
+  echom width
+  let numberwidth = max([&numberwidth, strlen(line('$'))+1])
+  let numwidth = (&number || &relativenumber)? numberwidth : 0
+  let foldwidth = &foldcolumn
+
+  if &signcolumn == 'yes'
+    let signwidth = 2
+  elseif &signcolumn == 'auto'
+    let signs = execute(printf('sign place buffer=%d', bufnr('')))
+    let signs = split(signs, "\n")
+    let signwidth = len(signs)>2? 2: 0
+  else
+    let signwidth = 0
+  endif
+  return width - numwidth - foldwidth - signwidth
+endfunction
+
+
 function s:list.open_buffer(himalaya, buffer_name, edit_action, ...) abort
   let opts = get(a:, '1', {})
   let folder = get(opts, 'folder', '')
@@ -144,14 +165,13 @@ function s:list.open_buffer(himalaya, buffer_name, edit_action, ...) abort
   let default_content = get(opts, 'content', g:himalaya_ui_default_list)
   let was_single_win = winnr('$') ==? 1
 
-  let content = himalaya_ui#utils#request_plain_sync({
-  \ 'cmd': 'envelope list --folder %s --account %s',
-  \ 'args': [shellescape(folder), shellescape(account)],
-  \ 'msg': 'Listing mail',
-  \})
-
-  echom content
-  echom a:edit_action
+  " TODO: Apart from the rest, this part is also a mess.
+  " - Remove the buffer created in setup_buffer
+  "   - Instead use a temporary buffer
+  "   - If the buffer is already open, use it and overwrite the content
+  " - Listing is not working properly
+  "   - Content is not adjusted to the window size
+  "   - Helper s:bufwidth is provided
 
   if a:edit_action ==? 'edit'
     call self.focus_window()
@@ -159,21 +179,39 @@ function s:list.open_buffer(himalaya, buffer_name, edit_action, ...) abort
     if bufnr > -1
       silent! exe 'b '.bufnr
       call self.setup_buffer(a:himalaya, extend({'existing_buffer': 1 }, opts), a:buffer_name, was_single_win)
-      echom 'setting lines'
       call setline(1, split(json_encode(content), "\n"))
       return
     endif
   endif
 
-
-  silent! exe a:edit_action.' '.a:buffer_name
-  call self.setup_buffer(a:himalaya, opts, a:buffer_name, was_single_win)
-  echom content
-  call append(0, content)
-
   if empty(folder)
     return
   endif
+
+  silent! exe a:edit_action.' '.a:buffer_name
+  call self.setup_buffer(a:himalaya, opts, a:buffer_name, was_single_win)
+
+  call self.focus_window()
+  let bufnr = bufnr(a:buffer_name)
+
+  let content = himalaya_ui#utils#request_plain_sync({
+  \ 'cmd': 'envelope list --folder %s --account %s --page %d',
+  \ 'args': [shellescape(folder), shellescape(account), 1],
+  \ 'msg': 'Listing mail',
+  \})
+
+  " TODO: Use this instead of the above 
+  " let content = himalaya_ui#utils#request_plain_sync({
+  " \ 'cmd': 'envelope list --folder %s --account %s --max-width %d --page-size %d --page %d',
+  " \ 'args': [shellescape(folder), shellescape(account), s:bufwidth(bufnr+1), winheight(bufnr) - 2, 1],
+  " \ 'msg': 'Listing mail',
+  " \})
+
+
+  call append(0, himalaya_ui#display#as_table(content))
+
+  echom 'setlocal filetype='.opts.filetype.' nomodifiable'
+  silent! exe 'setlocal filetype='.opts.filetype.' nomodifiable'
 
   let optional_schema = account ==? a:himalaya.default_scheme ? '' : account
 
@@ -219,16 +257,17 @@ function! s:list.setup_buffer(himalaya, opts, buffer_name, was_single_win) abort
     call self.drawer.render()
   endif
 
-  if &filetype !=? a:himalaya.filetype || !is_existing_buffer
-    silent! exe 'setlocal filetype='.a:himalaya.filetype.' nolist noswapfile nowrap nospell modifiable'
-  endif
-  let is_sql = &filetype ==? a:himalaya.filetype
+
+  " if &filetype !=? a:himalaya.filetype || !is_existing_buffer
+  "   silent! exe 'setlocal filetype='.a:himalaya.filetype.' nomodifiable'
+  " endif
+  " let is_sql = &filetype ==? a:himalaya.filetype
   " nnoremap <silent><buffer><Plug>(HIMALAYAUI_EditBindParameters) :call <sid>method('edit_bind_parameters')<CR>
   " nnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :call <sid>method('execute_list')<CR>
   " vnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :<C-u>call <sid>method('execute_list', 1)<CR>
-  if is_tmp && is_sql
+  " if is_tmp && is_sql
     " nnoremap <silent><buffer><silent><Plug>(HIMALAYAUI_SaveQuery) :call <sid>method('save_list')<CR>
-  endif
+  " endif
   " augroup himalaya_ui_list
   "   autocmd! * <buffer>
   "   if g:himalaya_ui_execute_on_save && is_sql
