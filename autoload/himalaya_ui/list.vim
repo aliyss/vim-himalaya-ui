@@ -47,6 +47,28 @@ function! s:list.open(item, edit_action) abort
   call self.open_buffer(himalaya, buffer_name, a:edit_action, { 'account': account, 'folder': folder, 'label': label, 'filetype': "himalaya-email-listing", 'content': get(a:item, 'content') })
 endfunction
 
+function! s:list.generate_buffer_name_email(opts) abort
+  let time = exists('*strftime') ? strftime('%Y-%m-%d-%H-%M-%S') : localtime()
+  let suffix = 'mail'
+  if !empty(a:opts.account)
+    let suffix = printf('%s-%s', a:opts.account, a:opts.label)
+  endif
+
+  if !empty(a:opts.folder)
+    let suffix = printf('%s-%s', suffix, a:opts.folder)
+  endif
+
+  if !empty(a:opts.id)
+    let suffix = printf('%s-%s', suffix, a:opts.id)
+  endif
+
+  let buffer_name = himalaya_ui#utils#slug(printf('%s', suffix))
+  let buffer_name = printf('%s-%s', buffer_name, time)
+
+  let tmp_name = printf('%s/%s', fnamemodify(tempname(), ':p:h'), buffer_name)
+  return tmp_name
+endfunction
+
 function! s:list.generate_buffer_name(himalaya, opts) abort
   let time = exists('*strftime') ? strftime('%Y-%m-%d-%H-%M-%S') : localtime()
   let suffix = 'list'
@@ -208,10 +230,11 @@ function s:list.open_buffer(himalaya, buffer_name, edit_action, ...) abort
   " \})
 
 
+  silent execute '%d'
   call append(0, himalaya_ui#display#as_table(content))
+  silent execute '$d'
 
-  echom 'setlocal filetype='.opts.filetype.' nomodifiable'
-  silent! exe 'setlocal filetype='.opts.filetype.' nomodifiable'
+  silent! exe 'setlocal filetype='.opts.filetype.' buftype=nofile bufhidden=wipe nobuflisted nolist noswapfile nowrap nospell nomodifiable signcolumn=no'
 
   let optional_schema = account ==? a:himalaya.default_scheme ? '' : account
 
@@ -244,10 +267,20 @@ function! s:list.setup_buffer(himalaya, opts, buffer_name, was_single_win) abort
   let b:himalayaui_himalaya_key_name = a:himalaya.key_name
   let b:himalayaui_folder_name = get(a:opts, 'folder', '')
   let b:himalayaui_account_name = get(a:opts, 'account', '')
-  let b:himalaya = a:himalaya.account
   let is_existing_buffer = get(a:opts, 'existing_buffer', 0)
   let is_tmp = self.drawer.himalayaui.is_tmp_location_buffer(a:himalaya, a:buffer_name)
   let himalaya_buffers = self.drawer.himalayaui.himalayas[a:himalaya.key_name].buffers
+
+  " TODO: Add a help message to the buffer
+  " nnoremap <silent><buffer> ? :call <sid>method('toggle_help', 'himalaya-email-listing')<CR>
+  nnoremap <silent><buffer> <CR> :call <sid>method('show_email', 'list')<CR>
+  nnoremap <silent><buffer> R :call <sid>method('reply_email', 'list')<CR>
+  nnoremap <silent><buffer> F :call <sid>method('forward_email', 'list')<CR>
+  nnoremap <silent><buffer> dd :call <sid>method('delete_email', 'list')<CR>
+
+  augroup himalaya_ui
+    autocmd! * <buffer>
+  augroup END
 
   if index(himalaya_buffers.list, a:buffer_name) ==? -1
     if empty(himalaya_buffers.list)
@@ -262,7 +295,6 @@ function! s:list.setup_buffer(himalaya, opts, buffer_name, was_single_win) abort
   "   silent! exe 'setlocal filetype='.a:himalaya.filetype.' nomodifiable'
   " endif
   " let is_sql = &filetype ==? a:himalaya.filetype
-  " nnoremap <silent><buffer><Plug>(HIMALAYAUI_EditBindParameters) :call <sid>method('edit_bind_parameters')<CR>
   " nnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :call <sid>method('execute_list')<CR>
   " vnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :<C-u>call <sid>method('execute_list', 1)<CR>
   " if is_tmp && is_sql
@@ -292,6 +324,234 @@ function! s:list.resize_if_single(is_single_win) abort
     wincmd p
   endif
 endfunction
+
+function! s:list.show_email(view) abort
+  let folder = b:himalayaui_folder_name
+  let account = b:himalayaui_account_name
+  if a:view ==? "list"
+    let id = matchstr(getline("."), '\d\+') 
+  else
+    let id = b:himalayaui_current_email
+  endif
+
+  let content = himalaya_ui#utils#request_plain_sync({
+  \ 'cmd': 'message read --account %s --folder %s %s',
+  \ 'args': [shellescape(account), shellescape(folder), id],
+  \ 'msg': 'Retrieving mail',
+  \})
+  let content = himalaya_ui#display#as_email(content)
+
+  let buffer_name = self.generate_buffer_name_email({ 'account': account, 'folder': folder, 'label': 'ReadMail', 'id': id, 'filetype': 'himalaya-email-reading' })
+
+
+  execute printf('silent! rightbelow new %s', buffer_name)
+  setlocal modifiable
+  silent execute '%d'
+  call append(0, content)
+  silent execute '$d'
+  setlocal filetype=himalaya-email-reading
+  let &modified = 0
+  execute 0
+
+  " TODO: Add a help message to the buffer
+  " nnoremap <silent><buffer> ? :call <sid>method('toggle_help', 'himalaya-email-reading')<CR>
+  nnoremap <silent><buffer> R :call <sid>method('reply_email', 'mail')<CR>
+  nnoremap <silent><buffer> F :call <sid>method('forward_email', 'mail')<CR>
+  nnoremap <silent><buffer> D :call <sid>method('delete_email', 'mail')<CR>
+
+  let b:himalayaui_folder_name = folder
+  let b:himalayaui_account_name = account
+  let b:himalayaui_current_email = id
+  let b:himalayaui_current_buffer_name = buffer_name
+
+  augroup himalaya_ui
+    autocmd! * <buffer>
+  augroup END
+endfunction
+
+
+function! s:list.reply_email(view) abort
+  let folder = b:himalayaui_folder_name
+  let account = b:himalayaui_account_name
+
+  if a:view ==? "list"
+    let id = matchstr(getline("."), '\d\+') 
+  else
+    let id = b:himalayaui_current_email
+    let current_buffer_name = b:himalayaui_current_buffer_name
+    " TODO: Don't know if this is the right way to do it
+    execute printf('silent! bwipeout %s', current_buffer_name)
+  endif
+
+  let content = himalaya_ui#utils#request_plain_sync({
+  \ 'cmd': 'template reply --account %s --folder %s %s',
+  \ 'args': [shellescape(account), shellescape(folder), id],
+  \ 'msg': 'Fetching reply template',
+  \})
+
+  let content = himalaya_ui#display#as_email(content)
+
+  let buffer_name = self.generate_buffer_name_email({ 'account': account, 'folder': folder, 'label': 'ReplyMail', 'id': id, 'filetype': 'himalaya-email-writing' })
+
+  " TODO: Same as above. I think this can be done in a better way
+  execute printf('silent! rightbelow new %s', buffer_name)
+  setlocal modifiable
+  silent execute '%d'
+  call append(0, content)
+  silent execute '$d'
+  setlocal filetype=himalaya-email-writing
+  let &modified = 0
+  execute 0
+
+
+  let b:himalayaui_folder_name = folder
+  let b:himalayaui_account_name = account
+  let b:himalayaui_current_email = id
+  let b:himalayaui_current_buffer_name = buffer_name
+
+  nnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :call <sid>method('execute_mail_prompt')<CR>
+  vnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :<C-u>call <sid>method('execute_mail_prompt', 1)<CR>
+
+
+  augroup himalaya_ui_list
+    autocmd! * <buffer>
+    if g:himalaya_ui_execute_on_save
+      autocmd BufWritePost <buffer> nested call s:method('execute_mail_prompt')
+    endif
+    autocmd BufDelete,BufWipeout <buffer> silent! call s:method('remove_buffer', str2nr(expand('<abuf>')))
+  augroup END
+endfunction
+
+
+function! s:list.forward_email(view) abort
+  let folder = b:himalayaui_folder_name
+  let account = b:himalayaui_account_name
+
+  if a:view ==? "list"
+    let id = matchstr(getline("."), '\d\+') 
+  else
+    let id = b:himalayaui_current_email
+    let current_buffer_name = b:himalayaui_current_buffer_name
+    " TODO: Don't know if this is the right way to do it
+    execute printf('silent! bwipeout %s', current_buffer_name)
+  endif
+
+  let content = himalaya_ui#utils#request_plain_sync({
+  \ 'cmd': 'template forward --account %s --folder %s %s',
+  \ 'args': [shellescape(account), shellescape(folder), id],
+  \ 'msg': 'Fetching forward template',
+  \})
+
+  let content = himalaya_ui#display#as_email(content)
+
+  let buffer_name = self.generate_buffer_name_email({ 'account': account, 'folder': folder, 'label': 'ReplyMail', 'id': id, 'filetype': 'himalaya-email-writing' })
+
+  " TODO: Same as above. I think this can be done in a better way
+  execute printf('silent! rightbelow new %s', buffer_name)
+  setlocal modifiable
+  silent execute '%d'
+  call append(0, content)
+  silent execute '$d'
+  setlocal filetype=himalaya-email-writing
+  let &modified = 0
+  execute 0
+
+
+  let b:himalayaui_folder_name = folder
+  let b:himalayaui_account_name = account
+  let b:himalayaui_current_email = id
+  let b:himalayaui_current_buffer_name = buffer_name
+
+  nnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :call <sid>method('execute_mail_prompt')<CR>
+  vnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :<C-u>call <sid>method('execute_mail_prompt', 1)<CR>
+
+
+  augroup himalaya_ui_list
+    autocmd! * <buffer>
+    if g:himalaya_ui_execute_on_save
+      autocmd BufWritePost <buffer> nested call s:method('execute_mail_prompt')
+    endif
+    autocmd BufDelete,BufWipeout <buffer> silent! call s:method('remove_buffer', str2nr(expand('<abuf>')))
+  augroup END
+endfunction
+
+function! s:list.delete_email(view)
+  if a:view ==? "list"
+    let id = matchstr(getline("."), '\d\+') 
+  else
+    let id = b:himalayaui_current_email
+    let current_buffer_name = b:himalayaui_current_buffer_name
+    " TODO: Don't know if this is the right way to do it
+    execute printf('silent! bwipeout %s', current_buffer_name)
+  endif
+  let choice = input(printf('Are you sure you want to delete email(s) %s? (y/N) ', id))
+  redraw | echo
+  if choice != 'y' | return | endif
+
+  let account = b:himalayaui_account_name
+  let folder = b:himalayaui_folder_name
+
+  let content = himalaya_ui#utils#request_plain_sync({
+    \ 'cmd': 'message delete --account %s --folder %s %s',
+    \ 'args': [shellescape(account), shellescape(folder), id],
+    \ 'msg': 'Deleting email',
+    \})
+
+  " TODO: Redraw list buffer
+
+  return
+endfunction
+
+function! s:list.execute_mail_prompt(...)
+  try
+    let account = b:himalayaui_account_name
+    let current_buffer_name = b:himalayaui_current_buffer_name
+    while 1
+      let choice = input('(s)end, (d)raft, (q)uit or (c)ancel? ')
+      let choice = tolower(choice)[0]
+      redraw | echo
+
+      if choice == 's'
+	      call writefile(getline(1, '$'), current_buffer_name)
+
+        let content = himalaya_ui#utils#request_plain_sync({
+          \ 'cmd': 'template send --account %s < %s',
+          \ 'args': [shellescape(account), shellescape(current_buffer_name)],
+          \ 'msg': 'Sending email',
+          \})
+
+        " TODO: Don't know if this is the right way to do it
+        execute printf('silent! bwipeout %s', current_buffer_name)
+
+        return
+      elseif choice == 'd'
+	      call writefile(getline(1, '$'), current_buffer_name)
+        let content = himalaya_ui#utils#request_plain_sync({
+          \ 'cmd': 'template save --account %s --folder drafts < %s',
+          \ 'args': [shellescape(account), shellescape(current_buffer_name)],
+          \ 'msg': 'Saving draft',
+          \})
+
+        " TODO: Don't know if this is the right way to do it
+        execute printf('silent! bwipeout %s', current_buffer_name)
+
+        return
+      elseif choice == 'q'
+        return
+      elseif choice == 'c'
+        " call himalaya#domain#email#write(join(getline(1, '$'), "\n") . "\n")
+        throw 'Prompt:Interrupt'
+      endif
+    endwhile
+  catch
+    if v:exception =~ ':Interrupt$'
+      call interrupt()
+    else
+      call himalaya_ui#log#err(v:exception)
+    endif
+  endtry
+endfunction
+
 
 function! s:list.remove_buffer(bufnr)
   let himalayaui_himalaya_key_name = getbufvar(a:bufnr, 'himalayaui_himalaya_key_name')

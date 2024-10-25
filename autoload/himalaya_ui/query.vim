@@ -337,6 +337,7 @@ function! s:query.inject_variables(lines) abort
 endfunction
 
 function! s:query.edit_bind_parameters() abort
+  echom 'Editing bind parameters'
   if !exists('b:himalayaui_bind_params') || empty(b:himalayaui_bind_params)
     return himalaya_ui#notifications#info('No bind parameters to edit.')
   endif

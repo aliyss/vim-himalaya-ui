@@ -16,7 +16,7 @@ endfunction
 
 function! himalaya_ui#utils#request_json_sync(opts) abort
   let args = get(a:opts, 'args', [])
-  call himalaya#log#info(printf('%s…', a:opts.msg))
+  call himalaya_ui#log#info(printf('%s…', a:opts.msg))
   let config = exists('g:himalaya_config_path') ? ' --config ' . g:himalaya_config_path : ''
   let cmd = call('printf', [g:himalaya_executable . config . ' --output json ' . a:opts.cmd] + args)
   try
@@ -32,7 +32,7 @@ endfunction
 
 function! himalaya_ui#utils#request_plain_sync(opts) abort
   let args = get(a:opts, 'args', [])
-  call himalaya#log#info(printf('%s…', a:opts.msg))
+  call himalaya_ui#log#info(printf('%s…', a:opts.msg))
   let config = exists('g:himalaya_config_path') ? ' --config ' . g:himalaya_config_path : ''
   let cmd = call('printf', [g:himalaya_executable . config . ' --output plain ' . a:opts.cmd] + args)
 
