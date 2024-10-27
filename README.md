@@ -1,4 +1,4 @@
-# vim-dadbod-ui
+# vim-himalaya-ui
 
 Simple UI for [himalaya](https://github.com/pimalaya/himalaya).
 It allows simple navigation through mail accounts and allows for reading and writing email.
