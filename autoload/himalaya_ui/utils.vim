@@ -96,3 +96,60 @@ function! himalaya_ui#utils#print_debug(msg) abort
 
   echom '[HIMALAYAUI Debug] '.string(a:msg)
 endfunction
+
+
+function! himalaya_ui#utils#find_window_by_var(varname, value)
+    " Iterate over all windows
+    for win_id in range(1, winnr('$'))
+        " Get the current window ID
+        let win = win_getid(win_id)
+        " Check if the variable matches the desired value
+        if getwinvar(win, a:varname, '') ==# a:value
+            return win
+        endif
+    endfor
+    " Return -1 if no matching window is found
+    return -1
+endfunction
+
+function! himalaya_ui#utils#create_window_with_var(buffer_name, varname, value)
+  let window_id = himalaya_ui#utils#find_window_by_var(a:varname, a:value)
+  if window_id != -1
+    call win_gotoid(window_id)
+    let buf = bufexists(a:buffer_name) ? bufnr(a:buffer_name) : -1
+    if buf != -1
+      execute 'buffer ' . buf
+    else
+      execute 'enew'
+      execute 'file ' . a:buffer_name
+    endif
+    return window_id
+  endif
+
+  execute printf('silent! rightbelow new %s', a:buffer_name)
+
+  let window_id = win_getid()
+  call setwinvar(window_id, a:varname, a:value)
+
+  return window_id
+endfunction
+
+
+function! himalaya_ui#utils#get_buffer_width(bufnr) abort " https://newbedev.com/get-usable-window-width-in-vim-script
+  let width = winwidth(a:bufnr)
+  echom width
+  let numberwidth = max([&numberwidth, strlen(line('$'))+1])
+  let numwidth = (&number || &relativenumber)? numberwidth : 0
+  let foldwidth = &foldcolumn
+
+  if &signcolumn == 'yes'
+    let signwidth = 2
+  elseif &signcolumn == 'auto'
+    let signs = execute(printf('sign place buffer=%d', bufnr('')))
+    let signs = split(signs, "\n")
+    let signwidth = len(signs)>2? 2: 0
+  else
+    let signwidth = 0
+  endif
+  return width - numwidth - foldwidth - signwidth
+endfunction
