@@ -136,8 +136,12 @@ endfunction
 
 
 function! himalaya_ui#utils#get_buffer_width(bufnr) abort " https://newbedev.com/get-usable-window-width-in-vim-script
-  let width = winwidth(a:bufnr)
-  echom width
+  let winnr = bufwinnr(a:bufnr)
+  if winnr == -1
+    return -1
+  endif
+
+  let width = winwidth(winnr)
   let numberwidth = max([&numberwidth, strlen(line('$'))+1])
   let numwidth = (&number || &relativenumber)? numberwidth : 0
   let foldwidth = &foldcolumn
@@ -145,11 +149,22 @@ function! himalaya_ui#utils#get_buffer_width(bufnr) abort " https://newbedev.com
   if &signcolumn == 'yes'
     let signwidth = 2
   elseif &signcolumn == 'auto'
-    let signs = execute(printf('sign place buffer=%d', bufnr('')))
+    let signs = execute(printf('sign place buffer=%d', bufnr(a:bufnr)))
     let signs = split(signs, "\n")
     let signwidth = len(signs)>2? 2: 0
   else
     let signwidth = 0
   endif
+
   return width - numwidth - foldwidth - signwidth
+endfunction
+
+function! himalaya_ui#utils#get_buffer_height(bufnr) abort
+  let winnr = bufwinnr(a:bufnr)
+  if winnr == -1
+    return -1
+  endif
+
+  let height = winheight(winnr)
+  return height
 endfunction

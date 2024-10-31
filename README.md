@@ -30,9 +30,10 @@ When you finish writing an email, just write the file (`:w`) and it will automat
 - [x] List emails in a folder
 
 ### List
+- [x] Navigate Next & Previous Pages (Enter, n, p)
 - [x] Read an email in the list view (Enter)
-- [x] Refresh list of emails (R)
-- [x] Reply to an email in the list view (r)
+- [x] Refresh list of emails (r)
+- [x] Reply to an email in the list view (R)
 - [x] Forward an email in the list view (F)
 - [x] Delete an email in the list view (dd)
 - [ ] Delete multiple emails in the list view

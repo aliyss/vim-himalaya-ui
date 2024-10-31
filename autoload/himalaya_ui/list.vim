@@ -163,44 +163,119 @@ endfunction
 function! s:list.refresh(view) abort
   let folder = b:himalayaui_folder_name
   let account = b:himalayaui_account_name
+  let buffer_name = b:himalayaui_current_buffer_name
+  let page_nr = b:page_nr
 
   if a:view ==? "list"
-    call self.list_folder_items(folder, account, 'himalaya-email-listing')
+    call self.list_folder_items(folder, account, 'himalaya-email-listing', {
+        \ 'buffer_name': buffer_name,
+        \ 'page': page_nr
+        \ })
   else
   endif
 endfunction
 
-function! s:list.list_folder_items(folder, account, filetype) abort
+function! s:list.list_next() abort
+  let folder = b:himalayaui_folder_name
+  let account = b:himalayaui_account_name
+  let buffer_name = b:himalayaui_current_buffer_name
+  let has_next_page = matchstr(getline('$'), 'Next Page (\d\+)') !=? ''
+
+  let page_nr = b:page_nr + 1
+  if has_next_page
+    let next_page = matchstr(getline('$'), 'Next Page (\d\+)')
+    let page_nr = str2nr(matchstr(next_page, '\d\+'))
+  else
+    let page_nr = b:page_nr
+  endif
+
+  call self.list_folder_items(folder, account, 'himalaya-email-listing', { 
+        \ 'buffer_name': buffer_name,
+        \ 'page': page_nr 
+        \ })
+endfunction
+
+function! s:list.list_previous() abort
+  let folder = b:himalayaui_folder_name
+  let account = b:himalayaui_account_name
+  let buffer_name = b:himalayaui_current_buffer_name
+  let has_previous_page = matchstr(1, 'Previous Page (\d\+)') !=? ''
+
+  let page_nr = b:page_nr - 1
+  if has_previous_page
+    let previous_page = matchstr(1, 'Previous Page (\d\+)')
+    let page_nr = str2nr(matchstr(previous_page, '\d\+'))
+  endif
+
+  if page_nr < 1
+    let page_nr = 1
+  endif
+
+  call self.list_folder_items(folder, account, 'himalaya-email-listing', { 
+        \ 'buffer_name': buffer_name,
+        \ 'page': page_nr 
+        \ })
+endfunction
+
+function! s:list.list_folder_items(folder, account, filetype, opts) abort
+  let opts = a:opts
+  let buffer_name = get(opts, 'buffer_name', '')
+  let buf_nr = bufnr(buffer_name)
+
+  let buf_width = himalaya_ui#utils#get_buffer_width(buf_nr)
+  let buf_height = himalaya_ui#utils#get_buffer_height(buf_nr)
+  let page = get(opts, 'page', 1)
+  let page_size = buf_height
+
   let content = himalaya_ui#utils#request_plain_sync({
-    \ 'cmd': 'envelope list --folder %s --account %s --page %d',
-    \ 'args': [shellescape(a:folder), shellescape(a:account), 1],
+    \ 'cmd': 'envelope list --folder %s --account %s --max-width %d --page-size %d --page %d',
+    \ 'args': [shellescape(a:folder), shellescape(a:account), buf_width, page_size - 3, page],
     \ 'msg': 'Listing mail',
     \})
 
-  " TODO: Use this instead of the above 
-  " let content = himalaya_ui#utils#request_plain_sync({
-  " \ 'cmd': 'envelope list --folder %s --account %s --max-width %d --page-size %d --page %d',
-  " \ 'args': [shellescape(folder), shellescape(account), s:bufwidth(bufnr+1), winheight(bufnr) - 2, 1],
-  " \ 'msg': 'Listing mail',
-  " \})
+  if empty(content) || len(content) ==? 1
+    let content = ['No emails']
+  endif
 
   silent! exe 'setlocal filetype='.a:filetype.' buftype=nofile bufhidden=wipe nobuflisted nolist noswapfile nowrap nospell nomodifiable signcolumn=no'
 
   " TODO: Add a help message to the buffer
   " nnoremap <silent><buffer> ? :call <sid>method('toggle_help', 'himalaya-email-listing')<CR>
-  nnoremap <silent><buffer> <CR> :call <sid>method('show_email', 'list')<CR>
+  nnoremap <silent><buffer> <CR> :call <sid>method('navigate_list')<CR>
   nnoremap <silent><buffer> r :call <sid>method('refresh', 'list')<CR>
+  nnoremap <silent><buffer> n :call <sid>method('list_next')<CR>
+  nnoremap <silent><buffer> p :call <sid>method('list_previous')<CR>
   nnoremap <silent><buffer> R :call <sid>method('reply_email', 'mail')<CR>
   nnoremap <silent><buffer> F :call <sid>method('forward_email', 'mail')<CR>
   nnoremap <silent><buffer> dd :call <sid>method('delete_email', 'list')<CR>
+
+  let b:page_nr = page
 
   augroup himalaya_ui_list
     autocmd! * <buffer>
   augroup END
 
   setlocal modifiable
+  " let line_count = (page - 1) * page_size
+  " if (page > 1)
+  "   if type(content) !=? type([])
+  "     let content = [content]
+  "   endif
+  "   call remove(content, 0)
+  "   if len(content) ==? 0
+  "     let content = ['No more emails']
+  "     let line_count = line('$')
+  "   endif
+  " endif
+  " call append(line_count, himalaya_ui#display#as_table(content))
   silent 1,$delete _
   silent execute '%d'
+  if len(content) !=? 1
+    call add(content, 'Next Page ('. (page + 1) .')')
+  endif
+  if page > 1
+    call insert(content, 'Previous Page ('. (page - 1) .')', 1)
+  endif
   call append(0, himalaya_ui#display#as_table(content))
   silent execute '$d'
   setlocal nomodifiable
@@ -238,7 +313,12 @@ function s:list.open_buffer(himalaya, buffer_name, edit_action, ...) abort
     endif
   endif
 
-  call self.list_folder_items(folder, account, opts.filetype)
+  let b:himalayaui_folder_name = folder
+  let b:himalayaui_account_name = account
+  let b:himalayaui_current_buffer_name = a:buffer_name
+  let b:page_nr = 1
+
+  call self.refresh('list')
   let optional_schema = account ==? a:himalaya.default_scheme ? '' : account
 
   if !empty(optional_schema)
@@ -301,6 +381,18 @@ function! s:list.resize_if_single(is_single_win) abort
     exe self.drawer.get_winnr().'wincmd w'
     exe 'vertical resize '.g:himalaya_ui_winwidth
     wincmd p
+  endif
+endfunction
+
+function! s:list.navigate_list() abort
+  let has_next_page = matchstr(getline('.'), 'Next Page (\d\+)') !=? ''
+  let has_previous_page = matchstr(getline('.'), 'Previous Page (\d\+)') !=? ''
+  if has_previous_page
+    call self.list_previous()
+  elseif has_next_page
+    call self.list_next()
+  else
+    call self.show_email('list')
   endif
 endfunction
 
