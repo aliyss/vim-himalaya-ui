@@ -242,12 +242,20 @@ function! s:list.list_folder_items(folder, account, filetype, opts) abort
   " TODO: Add a help message to the buffer
   " nnoremap <silent><buffer> ? :call <sid>method('toggle_help', 'himalaya-email-listing')<CR>
   nnoremap <silent><buffer> <CR> :call <sid>method('navigate_list')<CR>
-  nnoremap <silent><buffer> r :call <sid>method('refresh', 'list')<CR>
+  nnoremap <silent><buffer> rr :call <sid>method('refresh', 'list')<CR>
   nnoremap <silent><buffer> n :call <sid>method('list_next')<CR>
   nnoremap <silent><buffer> p :call <sid>method('list_previous')<CR>
-  nnoremap <silent><buffer> R :call <sid>method('reply_email', 'mail')<CR>
-  nnoremap <silent><buffer> F :call <sid>method('forward_email', 'mail')<CR>
-  nnoremap <silent><buffer> dd :call <sid>method('delete_email', 'list')<CR>
+  nnoremap <silent><buffer> mr :call <sid>method('reply_email', 'list')<CR>
+  nnoremap <silent><buffer> mR :call <sid>method('reply_all_email', 'list')<CR>
+  nnoremap <silent><buffer> mf :call <sid>method('forward_email', 'list')<CR>
+  nnoremap <silent><buffer> mm :call <sid>method('move_email', 'list')<CR>
+  nnoremap <silent><buffer> mc :call <sid>method('copy_email', 'list')<CR>
+  nnoremap <silent><buffer> ma :call <sid>method('download_attachments', 'list')<CR>
+  nnoremap <silent><buffer> md :call <sid>method('delete_email', 'list')<CR>
+  xnoremap <silent><buffer> m :<C-U>call <sid>method('move_email', 'list')<CR>
+  xnoremap <silent><buffer> c :<C-U>call <sid>method('copy_email', 'list')<CR>
+  xnoremap <silent><buffer> a :<C-U>call <sid>method('download_attachments', 'list')<CR>
+  xnoremap <silent><buffer> d :<C-U>call <sid>method('delete_email', 'list')<CR>
 
   let b:page_nr = page
 
@@ -270,7 +278,7 @@ function! s:list.list_folder_items(folder, account, filetype, opts) abort
   " call append(line_count, himalaya_ui#display#as_table(content))
   silent 1,$delete _
   silent execute '%d'
-  if len(content) !=? 1
+  if len(content) !=? 1 && len(content) > (page_size - 4)
     call add(content, 'Next Page ('. (page + 1) .')')
   endif
   if page > 1
@@ -279,8 +287,6 @@ function! s:list.list_folder_items(folder, account, filetype, opts) abort
   call append(0, himalaya_ui#display#as_table(content))
   silent execute '$d'
   setlocal nomodifiable
-
-  return
 endfunction
 
 function s:list.open_buffer(himalaya, buffer_name, edit_action, ...) abort
@@ -428,9 +434,13 @@ function! s:list.show_email(view) abort
 
   " TODO: Add a help message to the buffer
   " nnoremap <silent><buffer> ? :call <sid>method('toggle_help', 'himalaya-email-reading')<CR>
-  nnoremap <silent><buffer> R :call <sid>method('reply_email', 'mail')<CR>
-  nnoremap <silent><buffer> F :call <sid>method('forward_email', 'mail')<CR>
-  nnoremap <silent><buffer> D :call <sid>method('delete_email', 'mail')<CR>
+  nnoremap <silent><buffer> r :call <sid>method('reply_email', 'mail')<CR>
+  nnoremap <silent><buffer> R :call <sid>method('reply_all_email', 'mail')<CR>
+  nnoremap <silent><buffer> f :call <sid>method('forward_email', 'mail')<CR>
+  nnoremap <silent><buffer> m :call <sid>method('move_email', 'mail')<CR>
+  nnoremap <silent><buffer> c :call <sid>method('copy_email', 'mail')<CR>
+  nnoremap <silent><buffer> a :call <sid>method('download_attachments', 'mail')<CR>
+  nnoremap <silent><buffer> d :call <sid>method('delete_email', 'mail')<CR>
 
   let b:himalayaui_folder_name = folder
   let b:himalayaui_account_name = account
@@ -444,7 +454,7 @@ function! s:list.show_email(view) abort
 endfunction
 
 
-function! s:list.template_email(view, action) abort
+function! s:list.template_email(view, action, all) abort
   let folder = b:himalayaui_folder_name
   let account = b:himalayaui_account_name
   let himalaya = b:himalaya
@@ -455,8 +465,14 @@ function! s:list.template_email(view, action) abort
     let id = b:himalayaui_current_email
   endif
 
+  let cmd = 'template ' . a:action . ' --account %s --folder %s'
+  if a:all ==? 'all'
+    let cmd = cmd . ' --all'
+  endif
+  let cmd = cmd . ' %s'
+
   let content = himalaya_ui#utils#request_plain_sync({
-  \ 'cmd': 'template ' . a:action . ' --account %s --folder %s %s',
+  \ 'cmd': cmd,
   \ 'args': [shellescape(account), shellescape(folder), id],
   \ 'msg': 'Fetching ' . a:action . ' template',
   \})
@@ -495,22 +511,75 @@ function! s:list.template_email(view, action) abort
 endfunction
 
 function! s:list.reply_email(view) abort
-  call self.template_email(a:view, 'reply')
+  call self.template_email(a:view, 'reply', 'sender')
+endfunction
+
+function! s:list.reply_all_email(view) abort
+  call self.template_email(a:view, 'reply', 'all')
 endfunction
 
 function! s:list.forward_email(view) abort
-  call self.template_email(a:view, 'forward')
+  call self.template_email(a:view, 'forward', 'sender')
 endfunction
 
-function! s:list.delete_email(view)
+function! s:list.refile_email(view, action) abort
   if a:view ==? "list"
-    let id = matchstr(getline("."), '\d\+') 
+    let id = himalaya_ui#utils#get_email_id_under_cursors()
+    if empty(id)
+      let id = [himalaya_ui#utils#get_email_id_under_cursor()]
+    endif
   else
-    let id = b:himalayaui_current_email
-    let current_buffer_name = b:himalayaui_current_buffer_name
-    " TODO: Don't know if this is the right way to do it
-    execute printf('silent! bwipeout %s', current_buffer_name)
+    let id = [b:himalayaui_current_email]
   endif
+
+  let account = b:himalayaui_account_name
+  let folder = b:himalayaui_folder_name
+
+  let folders = himalaya_ui#utils#request_json_sync({
+    \ 'cmd': 'folder list --account %s',
+    \ 'args': [shellescape(account)],
+    \ 'msg': 'Listing folders',
+    \})
+
+  let next_folder = himalaya_ui#prompt#list(folders)
+  if empty(next_folder)
+    return
+  endif
+
+  let choice = input(printf(printf('Are you sure you want to ' . a:action . ' email(s) %s?', id) . " to %s? (y/N) ", next_folder.name))
+  redraw | echo
+  if choice != 'y' | return | endif
+
+
+  call himalaya_ui#utils#request_plain_sync({
+    \ 'cmd': 'message ' . a:action . ' --account %s --folder %s %s %s',
+    \ 'args': [shellescape(account), shellescape(folder), shellescape(next_folder.name), join(id)],
+    \ 'msg': 'Using ' . a:action . ' on email(s)',
+    \})
+
+  if a:view ==? "list" && a:action ==? 'move'
+    silent! call self.refresh('list')
+  endif
+endfunction
+
+function! s:list.copy_email(view) abort
+  call self.refile_email(a:view, 'copy')
+endfunction
+
+function! s:list.move_email(view) abort
+  call self.refile_email(a:view, 'move')
+endfunction
+
+function! s:list.delete_email(view) abort
+  if a:view ==? "list"
+    let id = himalaya_ui#utils#get_email_id_under_cursors()
+    if empty(id)
+      let id = [himalaya_ui#utils#get_email_id_under_cursor()]
+    endif
+  else
+    let id = [b:himalayaui_current_email]
+  endif
+
   let choice = input(printf('Are you sure you want to delete email(s) %s? (y/N) ', id))
   redraw | echo
   if choice != 'y' | return | endif
@@ -520,7 +589,7 @@ function! s:list.delete_email(view)
 
   call himalaya_ui#utils#request_plain_sync({
     \ 'cmd': 'message delete --account %s --folder %s %s',
-    \ 'args': [shellescape(account), shellescape(folder), id],
+    \ 'args': [shellescape(account), shellescape(folder), join(id)],
     \ 'msg': 'Deleting email',
     \})
 
@@ -530,12 +599,34 @@ function! s:list.delete_email(view)
     execute printf('silent! bwipeout %s', current_buffer_name)
   endif
 
-  " if a:view ==? "list"
-  "   " TODO: refresh the list
-  "   " call self.method('refresh', 'list')
-  " endif
+  if a:view ==? "list"
+    silent! call self.refresh('list')
+  endif
+endfunction
 
-  return
+function! s:list.download_attachments(view) abort
+  if a:view ==? "list"
+    let id = himalaya_ui#utils#get_email_id_under_cursors()
+    if empty(id)
+      let id = [himalaya_ui#utils#get_email_id_under_cursor()]
+    endif
+  else
+    let id = [b:himalayaui_current_email]
+  endif
+
+  let choice = input(printf('Are you sure you want to download attachment(s) %s? (y/N) ', id))
+  redraw | echo
+  if choice != 'y' | return | endif
+
+  let account = b:himalayaui_account_name
+  let folder = b:himalayaui_folder_name
+
+  call himalaya_ui#utils#request_plain_sync({
+    \ 'cmd': 'attachment download --account %s --folder %s %s',
+    \ 'args': [shellescape(account), shellescape(folder), join(id)],
+    \ 'msg': 'Downloading attachments',
+    \})
+
 endfunction
 
 function! s:list.execute_mail_prompt(...)

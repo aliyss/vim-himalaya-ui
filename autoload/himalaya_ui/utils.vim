@@ -168,3 +168,35 @@ function! himalaya_ui#utils#get_buffer_height(bufnr) abort
   let height = winheight(winnr)
   return height
 endfunction
+
+function! himalaya_ui#utils#get_email_id_from_line(line) abort
+  return matchstr(a:line, '\d\+')
+endfunction
+
+function! himalaya_ui#utils#get_email_id_under_cursor() abort
+  let line = getline('.')
+  return himalaya_ui#utils#get_email_id_from_line(line)
+endfunction
+
+function! himalaya_ui#utils#get_email_id_from_lines(from, to) abort
+  try
+    let emails = []
+    for line in range(a:from, a:to)
+      let email_id = himalaya_ui#utils#get_email_id_from_line(getline(line))
+      if email_id != ''
+        call add(emails, email_id)
+      endif
+    endfor
+    return emails
+  catch
+    call himalaya_ui#notifications#error([
+          \ 'Emails not found.',
+          \ ])
+  endtry
+endfunction
+
+function! himalaya_ui#utils#get_email_id_under_cursors() abort
+  let from = line("'<")
+  let to = line("'>")
+  return himalaya_ui#utils#get_email_id_from_lines(from, to)
+endfunction

@@ -33,15 +33,26 @@ When you finish writing an email, just write the file (`:w`) and it will automat
 - [x] Navigate Next & Previous Pages (Enter, n, p)
 - [x] Read an email in the list view (Enter)
 - [x] Refresh list of emails (r)
-- [x] Reply to an email in the list view (R)
-- [x] Forward an email in the list view (F)
-- [x] Delete an email in the list view (dd)
-- [ ] Delete multiple emails in the list view
+- [x] Reply to an email in the list view (mr)
+- [x] Reply All to an email in the list view (mR)
+- [x] Forward an email in the list view (mf)
+- [x] Move an email in the list view (mm)
+- [x] Copy an email in the list view (mc)
+- [x] Download an email's attachments in the list view (ma)
+- [x] Delete an email in the list view (md)
+- [x] Move multiple emails in the list view (Visual mode + m)
+- [x] Copy multiple emails in the list view (Visual mode + c)
+- [x] Download multiple email's attachments in the list view (Visual mode + a)
+- [x] Delete multiple emails in the list view (Visual mode + d)
 
 ### Mail
-- [x] Reply to the email in the mail view (R)
-- [x] Forward the email in the mail view (F)
-- [x] Delete the email in the mail view (D)
+- [x] Reply to the email in the mail view (r)
+- [x] Reply All to the email in the mail view (R)
+- [x] Forward the email in the mail view (f)
+- [x] Move the email in the mail view (m)
+- [x] Copy the email in the mail view (c)
+- [x] Download the email's attachments in the mail view (a)
+- [x] Delete the email in the mail view (d)
 - [ ] Add attachment to the email in the mail view
 
 
