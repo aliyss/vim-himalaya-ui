@@ -46,6 +46,21 @@ function! himalaya_ui#utils#request_plain_sync(opts) abort
   endtry
 endfunction
 
+function! himalaya_ui#utils#request_terminal_output(opts) abort
+  let args = get(a:opts, 'args', [])
+  call himalaya_ui#log#info(printf('%s…', a:opts.msg))
+  let cmd = call('printf', [a:opts.cmd . ' | ' . g:himalaya_ui_html_viewer . ' -stdin -dump '] + args)
+
+  try
+    let content = himalaya_ui#job#start(cmd)
+    return content
+  catch /.*/
+    call himalaya_ui#notifications#warning([
+          \ 'Error executing command.',
+          \ ])
+  endtry
+endfunction
+
 function! himalaya_ui#utils#readfile(file) abort
   try
     let content = readfile(a:file)
@@ -126,7 +141,7 @@ function! himalaya_ui#utils#create_window_with_var(buffer_name, varname, value)
     return window_id
   endif
 
-  execute printf('silent! rightbelow new %s', a:buffer_name)
+  execute printf('silent! rightbelow new %s', buffer_name)
 
   let window_id = win_getid()
   call setwinvar(window_id, a:varname, a:value)

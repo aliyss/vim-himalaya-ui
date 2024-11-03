@@ -47,6 +47,9 @@ let s:collapsed_icon = get(s:himalayaui_icons, 'collapsed', '▸')
 let s:expanded_icons = {}
 let s:collapsed_icons = {}
 
+let g:himalaya_ui_html_viewer = get(g:, 'himalaya_ui_html_viewer', 'cha')
+let g:himalaya_ui_html_viewer_args = get(g:, 'himalaya_ui_html_viewer_args', '--type "text/html" -c "body{background-color: transparent !important;}"')
+
 if type(s:expanded_icon) !=? type('')
   let s:expanded_icons = s:expanded_icon
   let s:expanded_icon = '▾'
