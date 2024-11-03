@@ -141,7 +141,7 @@ function! himalaya_ui#utils#create_window_with_var(buffer_name, varname, value)
     return window_id
   endif
 
-  execute printf('silent! rightbelow new %s', buffer_name)
+  execute printf('silent! rightbelow new %s', a:buffer_name)
 
   let window_id = win_getid()
   call setwinvar(window_id, a:varname, a:value)
