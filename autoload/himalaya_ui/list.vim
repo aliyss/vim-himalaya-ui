@@ -30,11 +30,19 @@ function! s:list.open(item, edit_action) abort
   if a:item.type ==? 'buffer'
     return self.open_buffer(himalaya, a:item.file_path, a:edit_action)
   endif
+
   let label = get(a:item, 'label', '')
   let folder = ''
   let account = ''
   let id = ''
-  if a:item.type !=? 'list'
+  let edit_action = a:edit_action
+
+
+  if a:item.type ==? 'create'
+    let suffix = a:item.label
+    let account = a:item.account
+    let edit_action = 'create'
+  elseif a:item.type !=? 'list'
     let suffix = a:item.folder.name.'-'.a:item.label
     let folder = a:item.folder.name
     let account = a:item.account
@@ -50,7 +58,7 @@ function! s:list.open(item, edit_action) abort
   let account = a:item.account
 
   let buffer_name = self.generate_buffer_name(himalaya, { 'account': account, 'folder': folder, 'label': label, 'id': id, 'filetype': himalaya.filetype, 'include_time': 0 })
-  call self.open_buffer(himalaya, buffer_name, a:edit_action, { 'account': account, 'folder': folder, 'label': label, 'filetype': "himalaya-email-listing", 'content': get(a:item, 'content') })
+  call self.open_buffer(himalaya, buffer_name, edit_action, { 'account': account, 'folder': folder, 'label': label, 'filetype': "himalaya-email-listing", 'content': get(a:item, 'content') })
 endfunction
 
 function! s:list.generate_buffer_name(himalaya, opts) abort
@@ -171,7 +179,8 @@ function! s:list.refresh(view) abort
         \ 'buffer_name': buffer_name,
         \ 'page': page_nr
         \ })
-  else
+  elseif a:view ==? "create"
+    call self.create_mail(folder, account, 'himalaya-email-listing')
   endif
 endfunction
 
@@ -292,6 +301,45 @@ function! s:list.list_folder_items(folder, account, filetype, opts) abort
   execute 0
 endfunction
 
+function! s:list.create_mail(folder, account, filetype) abort
+  let folder = a:folder
+  let account = a:account
+  let content = himalaya_ui#utils#request_plain_sync({
+  \ 'cmd': 'template write --account %s',
+  \ 'args': [shellescape(account)],
+  \ 'msg': 'Creating new mail',
+  \})
+  let content = himalaya_ui#display#as_email(content)
+
+  setlocal modifiable
+  silent execute '%d'
+  call append(0, content)
+  silent execute '$d'
+  setlocal filetype=himalaya-email-writing
+  let &modified = 0
+  execute 0
+
+  " TODO: Add a help message to the buffer
+  " nnoremap <silent><buffer> ? :call <sid>method('toggle_help', 'himalaya-email-reading')<CR>
+  nnoremap <silent><buffer> r :call <sid>method('reply_email', 'mail')<CR>
+  nnoremap <silent><buffer> h :call <sid>method('view_as_html', 'mail')<CR>
+  nnoremap <silent><buffer> R :call <sid>method('reply_all_email', 'mail')<CR>
+  nnoremap <silent><buffer> f :call <sid>method('forward_email', 'mail')<CR>
+  nnoremap <silent><buffer> m :call <sid>method('move_email', 'mail')<CR>
+  nnoremap <silent><buffer> c :call <sid>method('copy_email', 'mail')<CR>
+  nnoremap <silent><buffer> a :call <sid>method('download_attachments', 'mail')<CR>
+  nnoremap <silent><buffer> d :call <sid>method('delete_email', 'mail')<CR>
+
+  let b:himalayaui_folder_name = folder
+  let b:himalayaui_account_name = account
+  let b:himalaya = himalaya
+
+  augroup himalaya_ui_read
+    autocmd! * <buffer>
+    autocmd BufDelete,BufWipeout <buffer> silent! call s:method('remove_buffer', str2nr(expand('<abuf>')))
+  augroup END
+endfunction
+
 function s:list.open_buffer(himalaya, buffer_name, edit_action, ...) abort
   let opts = get(a:, '1', {})
   let folder = get(opts, 'folder', '')
@@ -312,7 +360,16 @@ function s:list.open_buffer(himalaya, buffer_name, edit_action, ...) abort
   call self.focus_window()
   let buf_nr = bufnr(a:buffer_name)
 
+
   if a:edit_action ==? 'edit'
+    if buf_nr > -1
+      silent! exe 'b '.buf_nr
+      call self.setup_buffer(a:himalaya, extend({'existing_buffer': 1 }, opts), a:buffer_name, was_single_win)
+    else
+      silent! exe a:edit_action.' '.a:buffer_name
+      call self.setup_buffer(a:himalaya, opts, a:buffer_name, was_single_win)
+    endif
+  elseif a:edit_action ==? 'create'
     if buf_nr > -1
       silent! exe 'b '.buf_nr
       call self.setup_buffer(a:himalaya, extend({'existing_buffer': 1 }, opts), a:buffer_name, was_single_win)
@@ -327,7 +384,12 @@ function s:list.open_buffer(himalaya, buffer_name, edit_action, ...) abort
   let b:himalayaui_current_buffer_name = a:buffer_name
   let b:page_nr = 1
 
-  call self.refresh('list')
+
+  if a:edit_action ==? 'create'
+    call self.refresh('create')
+  else
+    call self.refresh('list')
+  endif
   let optional_schema = account ==? a:himalaya.default_scheme ? '' : account
 
   if !empty(optional_schema)

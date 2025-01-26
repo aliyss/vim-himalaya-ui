@@ -422,7 +422,11 @@ function! s:drawer.add_himalaya(himalaya) abort
     return a:himalaya
   endif
 
-  call self.add('Create Mail', 'open', 'email', g:himalaya_ui_icons.new_list, a:himalaya.key_name, 1)
+  call self.add('Create Mail', 'open', 'create', g:himalaya_ui_icons.new_list, a:himalaya.key_name, 1, {
+        \ 'account': a:himalaya.account,
+        \ 'folder': {'name': 'INBOX'},
+        \ })
+
   if !empty(a:himalaya.buffers.list)
     call self.add('Buffers ('.len(a:himalaya.buffers.list).')', 'toggle', 'buffers', self.get_toggle_icon('buffers', a:himalaya.buffers), a:himalaya.key_name, 1, { 'expanded': a:himalaya.buffers.expanded })
     if a:himalaya.buffers.expanded
