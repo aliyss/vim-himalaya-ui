@@ -242,6 +242,13 @@ function! s:list.list_folder_items(folder, account, filetype, opts) abort
     \ 'msg': 'Listing mail',
     \})
 
+  " Remove the second line content is an array remove the second index
+  " Check if entry starts with "|-" 
+  if type(content) ==? type([]) && len(content) > 1 && match(content[1], '^|\-.*$') !=? -1
+    call remove(content, 1)
+  endif
+
+
   if empty(content) || len(content) ==? 1
     let content = ['No emails']
   endif
