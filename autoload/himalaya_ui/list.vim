@@ -82,10 +82,6 @@ function! s:list.generate_buffer_name(himalaya, opts) abort
     let suffix = printf('%s-%s', suffix, a:opts.id)
   endif
 
-  if !empty(a:opts.id)
-    let suffix = printf('%s-%s', suffix, a:opts.id)
-  endif
-
   let buffer_name = himalaya_ui#utils#slug(printf('%s-%s', a:himalaya.name, suffix))
   if time !=? ''
     let buffer_name = printf('%s-%s', buffer_name, time)
@@ -309,6 +305,7 @@ function! s:list.list_folder_items(folder, account, filetype, opts) abort
 endfunction
 
 function! s:list.create_mail(folder, account, filetype) abort
+  let himalaya = b:himalaya
   let folder = a:folder
   let account = a:account
   let content = himalaya_ui#utils#request_plain_sync({
@@ -317,6 +314,11 @@ function! s:list.create_mail(folder, account, filetype) abort
   \ 'msg': 'Creating new mail',
   \})
   let content = himalaya_ui#display#as_email(content)
+  let id = trim(system('uuidgen'))
+
+  let buffer_name = self.generate_buffer_name(himalaya, { 'account': account, 'folder': folder, 'label': 'create', 'id': id, 'filetype': 'himalaya-email-writing', 'include_time': 0 })
+
+  call himalaya_ui#utils#create_window_with_var(buffer_name, "mail_window", 1)
 
   setlocal modifiable
   silent execute '%d'
@@ -340,9 +342,16 @@ function! s:list.create_mail(folder, account, filetype) abort
   let b:himalayaui_folder_name = folder
   let b:himalayaui_account_name = account
   let b:himalaya = himalaya
+  let b:himalayaui_current_buffer_name = buffer_name
+
+  nnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :call <sid>method('execute_mail_prompt')<CR>
+  vnoremap <silent><buffer><Plug>(HIMALAYAUI_ExecuteQuery) :<C-u>call <sid>method('execute_mail_prompt', 1)<CR>
 
   augroup himalaya_ui_read
     autocmd! * <buffer>
+    if g:himalaya_ui_execute_on_save
+      autocmd BufWritePost <buffer> nested call s:method('execute_mail_prompt')
+    endif
     autocmd BufDelete,BufWipeout <buffer> silent! call s:method('remove_buffer', str2nr(expand('<abuf>')))
   augroup END
 endfunction
