@@ -19,6 +19,10 @@ Tested on Linux and Neovim.
 Features:
 * Navigate through multiple accounts and it's folders and emails
 
+<div align="center">
+    <img src="./screenshot.png" alt="Screenshot" />
+</div>
+
 ## Disclaimer
 The idea is to have a similar interface to [vim-dadbod-ui](https://github.com/kristijanhusak/vim-dadbod-ui), but for email.
 Which is why I decided to fork it and modify it to the needs of himalaya.
