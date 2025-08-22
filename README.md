@@ -1,7 +1,18 @@
-# vim-himalaya-ui
+<div align="center">
+    <img src="./logo.svg" alt="Logo" width="128" height="128" />
+    <h1>📫 vim-himalaya-ui</h1>
+    <p>
+        <strong>Simple Vim UI</strong> for <a href="https://github.com/pimalaya/himalaya">Himalaya CLI</a>
+    </p>
+    <p>
+        <img alt="TestedLinux" src="https://img.shields.io/badge/NixOS_25.11-blue?style=flat&logo=nixos&logoColor=white&label=linux&labelColor=gray&color=blue" />
+        <img alt="TestedVim" src="https://img.shields.io/badge/NVIM_v0.11-green?style=flat&logo=vim&logoColor=white&label=vim&labelColor=gray&color=%23226b07" />
+        <a href="http://discord.gg/zAypMTH">
+            <img alt="SocialAlice" src="https://img.shields.io/badge/wonderland-green?style=flat&logo=discord&logoColor=white&label=support&labelColor=gray&color=%235765f2&link=http%3A%2F%2Fdiscord.gg%2FzAypMTH">
+        </a>
+    </p>
+</div>
 
-Simple UI for [himalaya](https://github.com/pimalaya/himalaya).
-It allows simple navigation through mail accounts and allows for reading and writing email.
 
 Tested on Linux and Neovim.
 
@@ -17,15 +28,39 @@ This is my first vim plugin, so I'm learning as I go.
 
 ## Installation
 
-No clue. I'm still working on this.
+Install and configure [Himalaya CLI](https://github.com/pimalaya/himalaya) first. This is not yet done via the UI (see the Roadmap). Then install this plugin using your favorite plugin manager. I have no clue if the following works. Please open an issue if it works or doesn't so I can remove this line. I use a different setup anyways (works on my machine).
 
-After configuring your mail account, run `:HIMALAYAUI`, which should open up a drawer with all mail accounts provided.
-When you finish writing an email, just write the file (`:w`) and it will automatically prompt to send or save as draft.
+
+### Using [packer](https://github.com/wbthomason/packer.nvim)
+
+```lua
+use "https://github.com/aliyss/vim-himalaya-ui"
+```
+
+```vim
+:PackerSync
+```
+
+### Using [vim-plug](https://github.com/junegunn/vim-plug)
+
+```vim
+Plug 'https://github.com/aliyss/vim-himalaya-ui'
+```
+
+```vim
+:PlugInstall
+```
+
+
+## Usage
+After configuring your mail account and installing this repo, run `:HIMALAYAUI` to open the UI.
 
 ## Actions
 
 ### Drawer
-- [ ] Create a new email
+
+#### Account Actions
+- [x] Create a new email
 - [x] List folders in an account
 - [x] List emails in a folder
 
@@ -52,6 +87,8 @@ When you finish writing an email, just write the file (`:w`) and it will automat
 - [x] Delete multiple emails in the list view (Visual mode + d)
 
 ### Email
+- [x] Send/Save email in the mail create/reply/forward view (<BufWrite>) 
+- [x] Discard email in the mail create/reply/forward view (<BufDelete>) 
 - [x] Reply to the email in the mail view (r)
 - [x] Reply All to the email in the mail view (R)
 - [x] Forward the email in the mail view (f)
@@ -61,6 +98,20 @@ When you finish writing an email, just write the file (`:w`) and it will automat
 - [x] Delete the email in the mail view (d)
 - [ ] Add attachment to the email in the mail view
 
+## Additional Features
+
+### Render Email HTML
+When viewing an email, you can toggle between the text and HTML view by pressing `h`. This however requires you to have a terminal eml/html viewer installed.
+You can set any browser of your choice and configure it like so:
+```vim
+let g:himalaya_ui_eml_converter = get(g:, 'himalaya_ui_html_viewer', 'mhonarc')
+let g:himalaya_ui_eml_converter_args = get(g:, 'himalaya_ui_eml_converter_args', '-single')
+let g:himalaya_ui_html_viewer = get(g:, 'himalaya_ui_html_viewer', 'cha')
+let g:himalaya_ui_html_viewer_args = get(g:, 'himalaya_ui_html_viewer_args', '--type "text/html" -c "body{background-color: transparent !important;}"')
+```
+
+As you can see, I use `mhonarc` to convert the email to HTML and `chawan` to view it in the terminal. You can use any other tools of your choice.
+Make sure to install them first though.
 
 ## Future
 
@@ -72,29 +123,22 @@ Fix multiple issues and implement more features.
 Uses the current window where in dadbod you write the query, but instead lists all the emails.
 
 _Actions (based on keybindings and hovered_over):_
-- Reply (Mail Create View)
-- Reply all (Mail Create View)
-- Forward (Mail Create View)
-- Download Attachments
 - Open externally...
-- Delete
 - Move to... (Telescope integration?)
-- Enter: shows Mail in the dadbod result window (Mail Display View)
+- Allow overriding the default keybindings
 
 #### Mail Display View
 Displays Mail as text. Toggable to HTML view which shows raw html.
 
 _Actions:_
 - same as in List View
-- View as HTML/Text
 - (when hovered_on Thread expand...)
 
 #### Mail Create View (aka $ create mail)
 Pre-filled based on context. Should actually already work easily as himalaya provides most of this.
 
 _Actions_
-- Send
-- Save as draft
+- Better Save and Discard
 - Add Attachment
 - Discard
 
@@ -105,7 +149,5 @@ Afaik that should be all of the main stuff.
 ---
 
 _Hard stuff not provided by Himalaya:_
-- Enhanced Mail View in the future with lynx browser integration possibly.
 - Images maybe with sixel. No clue. I actually don't mind reading Email in text only.
-- Querying using something like notmuch
 
