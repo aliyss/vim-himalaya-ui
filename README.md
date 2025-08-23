@@ -61,8 +61,7 @@ Plug 'https://github.com/aliyss/vim-himalaya-ui'
 return {
     "aliyss/vim-himalaya-ui",
     cmd = {
-        "HIMALAYAUI",
-        "HIMALAYAUIToggle"
+        "HIMALAYAUI"
     },
     init = function()
         -- Your HIMALAYAUI configuration
