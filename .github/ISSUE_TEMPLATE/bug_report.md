@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a report to help me help you
 title: "[BUG] XXX doesn't work"
 labels: bug
 assignees: aliyss
@@ -25,6 +25,7 @@ A clear and concise description of what you expected to happen.
 **Account Config**
 ```toml
 # Include your config here
+# If you are inlining passwords make sure to remove them before adding here.
 ```
 
 **Screenshots**
