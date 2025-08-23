@@ -385,20 +385,14 @@ function! s:drawer.render_help() abort
     call self.add('" S - Open/Toggle selected item in vertical split', 'noaction', 'help', '', '', 0)
     call self.add('" d - Delete selected item', 'noaction', 'help', '', '', 0)
     call self.add('" R - Redraw', 'noaction', 'help', '', '', 0)
-    call self.add('" A - Add connection', 'noaction', 'help', '', '', 0)
+    " FIXME: `H` toggles `(IMAP, SMTP)`, but I don't know what to call that.
+    " It toggles *something*, just not "database details".
     call self.add('" H - Toggle database details', 'noaction', 'help', '', '', 0)
-    call self.add('" r - Rename/Edit buffer/connection/saved list', 'noaction', 'help', '', '', 0)
     call self.add('" q - Close drawer', 'noaction', 'help', '', '', 0)
     call self.add('" <C-j>/<C-k> - Go to last/first sibling', 'noaction', 'help', '', '', 0)
     call self.add('" K/J - Go to prev/next sibling', 'noaction', 'help', '', '', 0)
     call self.add('" <C-p>/<C-n> - Go to parent/child node', 'noaction', 'help', '', '', 0)
-    call self.add('" <Leader>W - (sql) Save currently opened list', 'noaction', 'help', '', '', 0)
-    call self.add('" <Leader>E - (sql) Edit bind parameters in opened list', 'noaction', 'help', '', '', 0)
-    call self.add('" <Leader>S - (sql) Execute list in visual or normal mode', 'noaction', 'help', '', '', 0)
-    call self.add('" <C-]> - (.himalayaout) Go to entry from foreign key cell', 'noaction', 'help', '', '', 0)
-    call self.add('" <motion>ic - (.himalayaout) Operator pending mapping for cell value', 'noaction', 'help', '', '', 0)
-    call self.add('" <Leader>R - (.himalayaout) Toggle expanded view', 'noaction', 'help', '', '', 0)
-    call self.add('', 'noaction', 'help', '', '', 0)
+    call self.add('', 'noaction', 'help', '', '', 0) " Adds an extra blank line below the help.
   endif
 endfunction
 

@@ -277,4 +277,4 @@ function! s:hide_notifications() abort
   endif
 endfunction
 
-command HIMALAYAUIHideNotifications call s:hide_notifications()
+command HimalayaUIHideNotifications call s:hide_notifications()
