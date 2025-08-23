@@ -55,6 +55,31 @@ Plug 'https://github.com/aliyss/vim-himalaya-ui'
 :PlugInstall
 ```
 
+### Using [lazy.nvim](https://github.com/folke/lazy.nvim)
+
+```lua
+return {
+    "aliyss/vim-himalaya-ui",
+    dependencies = {
+        { "tpope/vim-dadbod", lazy = true },
+        { -- Optional
+            "kristijanhusak/vim-dadbod-completion",
+            ft = { "sql", "mysql", "plsql" },
+            lazy = true,
+        },
+    },
+    cmd = {
+        "HIMALAYAUI",
+        "HIMALAYAUIToggle",
+        "HIMALAYAUIAddConnection",
+        "HIMALAYAUIFindBuffer",
+    },
+    init = function()
+        -- Your HIMALAYAUI configuration
+        vim.g.himalaya_ui_use_nerd_fonts = 1
+    end,
+}
+```
 
 ## Usage
 After configuring your mail account and installing this repo, run `:HIMALAYAUI` to open the UI.
