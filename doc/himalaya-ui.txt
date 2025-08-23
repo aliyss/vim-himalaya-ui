@@ -1,8 +1,8 @@
 *himalaya-ui.txt*
 
-        Simple UI for https://github.com/tpope/vim-himalaya
+        Simple UI for https://github.com/pimalaya/himalaya
 
-Author: Kristijan <husakkristijan at gmail.com>
+Author: Aliyss <https://github.com/aliyss>
 License: MIT
 
 vim-himalaya-ui			    *vim-himalaya-ui*
@@ -25,7 +25,7 @@ vim-himalaya-ui			    *vim-himalaya-ui*
 ==============================================================================
 1. Introduction					*vim-himalaya-ui-introduction*
 
-Vim himalaya UI is simple UI for tpope's awesome vim-himalaya plugin.
+Vim himalaya UI is a simple UI for pimalaya's awesome himalaya CLI tool.
 
 Main features:
 
@@ -39,17 +39,18 @@ Main features:
 2. Install					*vim-himalaya-ui-install*
 
 Requirements:
-- https://github.com/tpope/vim-himalaya
+- https://github.com/pimalaya/himalaya
 
-Install with your favorite package manager. If you don't have one, I suggest
+
+Install with your favorite package manager. If you don't have one, I suggest:
 
 Configuration with lazy.nvim (https://github.com/folke/lazy.nvim)
 >
     return {
-      'kristijanhusak/vim-himalaya-ui',
+      'aliyss/vim-himalaya-ui',
       dependencies = {
-        { 'tpope/vim-himalaya', lazy = true },
-        { 'kristijanhusak/vim-himalaya-completion', ft = { 'sql', 'mysql', 'plsql' }, lazy = true }, -- Optional
+        { 'tpope/vim-dadbod', lazy = true },
+        { 'kristijanhusak/vim-dadbod-completion', ft = { 'sql', 'mysql', 'plsql' }, lazy = true }, -- Optional
       },
       cmd = {
         'HIMALAYAUI',
@@ -66,9 +67,9 @@ Configuration with lazy.nvim (https://github.com/folke/lazy.nvim)
 
 Or vim-plug (https://github.com/junegunn/vim-plug)
 >
-    Plug 'tpope/vim-himalaya'
-    Plug 'kristijanhusak/vim-himalaya-ui'
-    Plug 'kristijanhusak/vim-himalaya-completion' "Optional
+    Plug 'tpope/vim-dadbod'
+    Plug 'aliyss/vim-himalaya-ui'
+    Plug 'kristijanhusak/vim-dadbod-completion' "Optional
 <
 
 Define a connection |vim-himalaya-ui-connections|
