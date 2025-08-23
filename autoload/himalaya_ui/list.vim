@@ -194,9 +194,9 @@ function! s:list.list_next() abort
     let page_nr = b:page_nr
   endif
 
-  call self.list_folder_items(folder, account, 'himalaya-email-listing', { 
+  call self.list_folder_items(folder, account, 'himalaya-email-listing', {
         \ 'buffer_name': buffer_name,
-        \ 'page': page_nr 
+        \ 'page': page_nr
         \ })
 endfunction
 
@@ -216,9 +216,9 @@ function! s:list.list_previous() abort
     let page_nr = 1
   endif
 
-  call self.list_folder_items(folder, account, 'himalaya-email-listing', { 
+  call self.list_folder_items(folder, account, 'himalaya-email-listing', {
         \ 'buffer_name': buffer_name,
-        \ 'page': page_nr 
+        \ 'page': page_nr
         \ })
 endfunction
 
@@ -239,11 +239,10 @@ function! s:list.list_folder_items(folder, account, filetype, opts) abort
     \})
 
   " Remove the second line content is an array remove the second index
-  " Check if entry starts with "|-" 
+  " Check if entry starts with "|-"
   if type(content) ==? type([]) && len(content) > 1 && match(content[1], '^|\-.*$') !=? -1
     call remove(content, 1)
   endif
-
 
   if empty(content) || len(content) ==? 1
     let content = ['No emails']
@@ -489,7 +488,7 @@ function! s:list.show_email(view) abort
   let himalaya = b:himalaya
 
   if a:view ==? "list"
-    let id = matchstr(getline("."), '\d\+') 
+    let id = matchstr(getline("."), '\d\+')
   else
     let id = b:himalayaui_current_email
   endif
@@ -543,7 +542,7 @@ function! s:list.template_email(view, action, all) abort
   let himalaya = b:himalaya
 
   if a:view ==? "list"
-    let id = matchstr(getline("."), '\d\+') 
+    let id = matchstr(getline("."), '\d\+')
   else
     let id = b:himalayaui_current_email
   endif

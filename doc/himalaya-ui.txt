@@ -10,17 +10,13 @@ vim-himalaya-ui			    *vim-himalaya-ui*
 1. Introduction				    |vim-himalaya-ui-introduction|
 2. Install				    |vim-himalaya-ui-install|
 3. Commands 		    		    |vim-himalaya-ui-commands|
-4. Connections 			            |vim-himalaya-ui-connections|
-  4.1 Through environment variables 	    |vim-himalaya-ui-connections-env|
-  4.2 Via `g:himalaya` and `g:himalayas` global variable|vim-himalaya-ui-connections-g:himalayas|
-  4.3 Using `HIMALAYAUIAddConnection` comand 	    |vim-himalaya-ui-connections-add|
-5. Mappings				    |vim-himalaya-ui-mappings|
-6. Table helpers 		   	    |vim-himalaya-ui-table-helpers|
-7. Bind parameters 		   	    |vim-himalaya-ui-bind-parameters|
-8. Settings				    |vim-himalaya-ui-settings|
-9. Functions				    |vim-himalaya-ui-functions|
-10. Autocommands 			    |vim-himalaya-ui-autocommands|
-11. Highlights 			            |vim-himalaya-ui-highlights|
+4. Mappings				    |vim-himalaya-ui-mappings|
+5. Table helpers 		   	    |vim-himalaya-ui-table-helpers|
+6. Bind parameters 		   	    |vim-himalaya-ui-bind-parameters|
+7. Settings				    |vim-himalaya-ui-settings|
+8. Functions				    |vim-himalaya-ui-functions|
+9. Autocommands 			    |vim-himalaya-ui-autocommands|
+10. Highlights 			            |vim-himalaya-ui-highlights|
 
 ==============================================================================
 1. Introduction					*vim-himalaya-ui-introduction*
@@ -48,221 +44,75 @@ Configuration with lazy.nvim (https://github.com/folke/lazy.nvim)
 >
     return {
       'aliyss/vim-himalaya-ui',
-      dependencies = {
-        { 'tpope/vim-dadbod', lazy = true },
-        { 'kristijanhusak/vim-dadbod-completion', ft = { 'sql', 'mysql', 'plsql' }, lazy = true }, -- Optional
-      },
-      cmd = {
-        'HIMALAYAUI',
-        'HIMALAYAUIToggle',
-        'HIMALAYAUIAddConnection',
-        'HIMALAYAUIFindBuffer',
-      },
+      cmd = { 'HimalayaUI' },
       init = function()
-        -- Your HIMALAYAUI configuration
-        vim.g.himalaya_ui_use_nerd_fonts = 1
+        -- Your HimalayaUI configuration
       end,
     }
 <
 
 Or vim-plug (https://github.com/junegunn/vim-plug)
 >
-    Plug 'tpope/vim-dadbod'
     Plug 'aliyss/vim-himalaya-ui'
-    Plug 'kristijanhusak/vim-dadbod-completion' "Optional
 <
 
-Define a connection |vim-himalaya-ui-connections|
-Execute `:HIMALAYAUI` command
+Execute `:HimalayaUI` command
 
 ==============================================================================
 3. Commands 					*vim-himalaya-ui-commands*
 
-					      *HIMALAYAUI*
-HIMALAYAUI
+					      *HimalayaUI*
+HimalayaUI
 		Open drawer with available connections, or an option to add
 		connection if there isn't any. Supports `<mods>`, which means
 		that you can open the drawer for example in new tab like this:
-		`:tab HIMALAYAUI`
+		`:tab HimalayaUI`
 
-		`:HIMALAYAUI`
+		`:HimalayaUI`
 
-					      *HIMALAYAUIToggle*
-HIMALAYAUIToggle
-		Toggle the drawer. When closed, same as calling `HIMALAYAUI`. When
+					      *HimalayaUIToggle*
+HimalayaUIToggle
+		Toggle the drawer. When closed, same as calling `HimalayaUI`. When
 		opened, same as doing `q` in drawer.
 
-		`:HIMALAYAUIToggle`
+		`:HimalayaUIToggle`
 
-					      *HIMALAYAUIAddConnection*
-HIMALAYAUIAddConnection
-		Open a prompt to enter new connection, by providing database
-		url and connection name. Once entered, it will be saved in
-		connections file located in |g:himalaya_ui_save_location| folder.
-		This can also be triggered using key `A` from the drawer. See
-		|<Plug>(HIMALAYAUI_AddConnection)|
+					      *HimalayaUIClose*
+HimalayaUIClose
+		Close the drawer. Same as doing `q` in drawer.
 
-		`:HIMALAYAUIAddConnection`
+		`:HimalayaUIClose`
 
-					      *HIMALAYAUIFindBuffer*
-HIMALAYAUIFindBuffer
-		Find currently opened buffer in HIMALAYAUI drawer, or if it wasn't
-		opened from HIMALAYAUI, assigns the buffer to specified himalaya.
-
-		`:HIMALAYAUIFindBuffer`
-
-					      *HIMALAYAUIRenameBuffer*
-HIMALAYAUIRenameBuffer
-		Rename currently opened buffer or saved query. If it's buffer,
-		it must be written first.
-
-		`:HIMALAYAUIRenameBuffer`
-
-					      *HIMALAYAUILastQueryInfo*
-HIMALAYAUILastQueryInfo
-		Print information about last query that was ran.
-		It prints the query, and the time it took to finish.
-
-		`:HIMALAYAUILastQueryInfo`
-
-					      *HIMALAYAUIHideNotifications*
-HIMALAYAUIHideNotifications
+					      *HimalayaUIHideNotifications*
+HimalayaUIHideNotifications
 		Hide all floating notifications that are currently shown.
 		Does not work with `vim.notify` and `echo` mode
 
-		`:HIMALAYAUIHideNotifications`
+		`:HimalayaUIHideNotifications`
 
 ==============================================================================
-4. Connections 					*vim-himalaya-ui-connections*
-
-There are multiple ways to set up your database connections:
-
-1. Through environment variables |vim-himalaya-ui-connections-env|
-2. Via `g:himalaya` and `g:himalayas` global variable |vim-himalaya-ui-connections-g:himalayas|
-3. Via |HIMALAYAUIAddConnection| command
-
-It is possible to combine all 3 types, but it's not possible to have same
-connection name from same source.
-
-==============================================================================
-4.1 Through environment variables		*vim-himalaya-ui-connections-env*
-
-There are 2 ways to define connections using environment variables:
-
-1. Using regular environment variable
-This option reads environment variable(s) called `$HIMALAYAUI_URL` and `$HIMALAYAUI_NAME`.
-`$HIMALAYAUI_URL` contains connection url
-`$HIMALAYAUI_NAME` contains connection name
-if only `$HIMALAYAUI_URL` is defined,`$HIMALAYAUI_NAME` is parsed from connection url.
-To change name of the variables that are read, change
-|g:himalaya_ui_env_variable_url| and |g:himalaya_ui_env_variable_name|.
-Note that this option can also leverage `dotenv.vim` since it exports dotenv
-variables as regular environment variables.
-
-2. Using https://github.com/tpope/vim-dotenv
-This option allows defining multiple connections with multiple env variables
-inside your `.env`. For example, this would create two connections:
-
-* `HIMALAYA_UI_DEV=postgres://postgres:rootpw@localhost:5432/dev-himalaya`
-* `HIMALAYA_UI_PRODUCTION=postgres://postgres:rootpw@localhost:5432/dev-himalaya`
-
-One will be called `dev`, and another one `production`. Connection name is
-parsed from the variable name (everything after `HIMALAYA_UI_` lowercased). To
-change the prefix, change `g:himalaya_ui_dotenv_variable_prefix` value.
-
-
-==============================================================================
-4.2 Via `g:himalaya` and `g:himalayas` global variable	*vim-himalaya-ui-connections-g:himalayas*
-
-This option gives a bit more flexibility, but it's harder to keep it out of
-version control.
-vim-himalaya `g:himalaya` variable is read first.
-`g:himalayas` can be defined as a object, or as an array of objects:
-
-Object example:
->
-  function s:resolve_production_url()
-    return system('get-prod-url')
-  end
-
-  let g:himalayas = {
-  \ 'dev': 'postgres://postgres:mypassword@localhost:5432/my-dev-himalaya',
-  \ 'staging': 'postgres://postgres:mypassword@localhost:5432/my-staging-himalaya',
-  \ 'wp': 'mysql://root@localhost/wp_awesome',
-  \ 'production': function('s:resolve_production_url')
-  \ }
-<
-Array of objects example:
->
-  let g:himalayas = [
-  \ { 'name': 'dev', 'url': 'postgres://postgres:mypassword@localhost:5432/my-dev-himalaya' }
-  \ { 'name': 'staging', 'url': 'postgres://postgres:mypassword@localhost:5432/my-staging-himalaya' },
-  \ { 'name': 'wp', 'url': 'mysql://root@localhost/wp_awesome' },
-  \ { 'name': 'production', 'url': function('s:resolve_production_url') },
-  \ ]
-<
-
-If you use Neovim, you can also use lua to define the connections:
->
-  vim.g.himalayas = {
-    {
-      { name = 'dev', url = 'postgres://postgres:mypassword@localhost:5432/my-dev-himalaya' }
-      { name = 'staging', url = 'postgres://postgres:mypassword@localhost:5432/my-staging-himalaya' },
-      { name = 'wp', url = 'mysql://root@localhost/wp_awesome' },
-      {
-        name = 'production',
-        url = function()
-          return vim.fn.system('get-prod-url')
-        end
-      },
-    }
-  }
-<
-
-
-Currently, only difference between these two methods is that array ensures
-order, while order of connections with g:himalayas as object has arbitrary order.
-
-If you use this method, make sure to `keep it out of version control` .
-One way to ensure it's not commited is to use `exrc` option, which allows
-creating project level vimrc to hold this configuration. After that, add that
-file to your global gitignore file, and you're safe.
-Other solution is to have it as a function that resolves a value dynamically.
-
-==============================================================================
-4.3 Using `HIMALAYAUIAddConnection` command	*vim-himalaya-ui-connections-add*
-
-Executing |HIMALAYAUIAddConnection| opens up a prompt to enter connection that will
-be saved in a `connections.json` file in |g:himalaya_ui_save_location| folder. These
-connections will be available from everywhere. If you want to delete certain
-connection, open up HIMALAYAUI drawer and press `d` (|<Plug>(HIMALAYAUI_DeleteLine|) on
-the connection you want to delete.
-
-==============================================================================
-
-5. Mappings					*vim-himalaya-ui-mappings*
+4. Mappings					*vim-himalaya-ui-mappings*
 
 					      *<Plug>(HIMALAYAUI_SelectLine)*
 <Plug>(HIMALAYAUI_SelectLine)
 		This mapping is used for toggling and opening everything in
-		the HIMALAYAUI drawer.
+		the HimalayaUI drawer.
 
 		By default, mapped to `o`, `Enter` and `Double click` .
 
 					      *<Plug>(HIMALAYAUI_SelectLineVsplit)*
 <Plug>(HIMALAYAUI_SelectLineVsplit)
 		This mapping is used for opening all non-toggle items from
-		HIMALAYAUI drawer in a vertical split.
+		HimalayaUI drawer in a vertical split.
 
 		By default, mapped to `S`.
 
 					      *<Plug>(HIMALAYAUI_DeleteLine)*
 <Plug>(HIMALAYAUI_DeleteLine)
-		This mapping is used deleting certain items from the HIMALAYAUI
+		This mapping is used deleting certain items from the HimalayaUI
 		drawer. It will work on these:
 		1. Buffers
 		2. Saved queries
-		3. Connections added via |HIMALAYAUIAddConnection|
 		Confirm prompt is opened before deleting to avoid accidents.
 
 		By default, mapped to `d`.
@@ -329,8 +179,7 @@ ic
 
 					      *<Plug>(HIMALAYAUI_AddConnection)*
 <Plug>(HIMALAYAUI_AddConnection)
-		This mapping is used adding a new connection. It is same as
-		executing |HIMALAYAUIAddConnection| command.
+		This mapping is used for adding a new connection.
 
 		By default, mapped to `A`.
 
@@ -349,21 +198,12 @@ ic
 
 					      *<Plug>(HIMALAYAUI_Redraw)*
 <Plug>(HIMALAYAUI_Redraw)
-		This mapping is used for redrawing the HIMALAYAUI drawer. It will
+		This mapping is used for redrawing the HimalayaUI drawer. It will
 		refresh the tables on all connections that were opened. This
 		is usually not needed, only when tables are
 		added/edited/deleted via query.
 
 		By default, mapped to `R`.
-
-					      *<Plug>(HIMALAYAUI_RenameLine)*
-<Plug>(HIMALAYAUI_RenameLine)
-		Rename buffer or saved query under cursor, or edit a
-		connection added via |HIMALAYAUIAddConnection|. If it's a buffer,
-		it must be written (executed) at least once. Alternative is to
-		use |HIMALAYAUIRenameBuffer| from the buffer.
-
-		By default, mapped to `r`.
 
 					      *<Plug>(HIMALAYAUI_SaveQuery)*
 <Plug>(HIMALAYAUI_SaveQuery)
@@ -398,7 +238,7 @@ ic
 
 					      *?*
 ?
-		This mapping is used to show help in the HIMALAYAUI drawer, that
+		This mapping is used to show help in the HimalayaUI drawer, that
 		contains mappings that are available. To hide
 		`Press ? for help`, see |g:himalaya_ui_show_help|
 
@@ -446,7 +286,7 @@ ic
 		By default, mapped to `<C-n>`.
 
 ==============================================================================
-6. Table helpers				*vim-himalaya-ui-table-helpers*
+5. Table helpers				*vim-himalaya-ui-table-helpers*
 
 Table helper is a predefined query that is easily available for each table.
 By default, all database schemes available in `vim-himalaya` have a `List` table
@@ -490,7 +330,7 @@ write select queries, add it like this:
 `select * from mytable`
 
 ==============================================================================
-7. Bind parameters				*vim-himalaya-ui-bind-parameters*
+6. Bind parameters				*vim-himalaya-ui-bind-parameters*
 
 Bind parameters are variables that can be injected into the query at execution
 time. For example, when executing this query
@@ -537,8 +377,7 @@ certain value (for example, to check the number as a string), just add quotes
 when defining the value and it will be treated as string.
 
 ==============================================================================
-
-8. Settings					*vim-himalaya-ui-settings*
+7. Settings					*vim-himalaya-ui-settings*
 
 					      *g:himalaya_ui_save_location*
 g:himalaya_ui_save_location
@@ -610,13 +449,13 @@ g:himalaya_ui_notification_width
 
 					      *g:himalaya_ui_winwidth*
 g:himalaya_ui_winwidth
-		Number of columns used for default HIMALAYAUI drawer width.
+		Number of columns used for default HimalayaUI drawer width.
 
 		Default value: `40`
 
 					      *g:himalaya_ui_win_position*
 g:himalaya_ui_win_position
-		On which side of the screen should HIMALAYAUI drawer open.
+		On which side of the screen should HimalayaUI drawer open.
 		Possible values: `left` and `right`
 
 		Default value: `left`
@@ -629,7 +468,7 @@ g:himalaya_ui_disable_mappings
 
 					      *g:himalaya_ui_disable_mappings_himalayaui*
 g:himalaya_ui_disable_mappings_himalayaui
-		If this is set to `1`, no default mappings for HIMALAYAUI drawer
+		If this is set to `1`, no default mappings for HimalayaUI drawer
 		are defined.
 
 		Default value: `0`
@@ -770,7 +609,7 @@ g:himalaya_ui_use_nerd_fonts
 
 					      *g:himalaya_ui_show_help*
 g:himalaya_ui_show_help
-		When set to `0`, hides `Press ? for help` from the HIMALAYAUI
+		When set to `0`, hides `Press ? for help` from the HimalayaUI
 		drawer. Mapping will continue to work no matter of this value.
 
 		Default value: `1`
@@ -860,8 +699,7 @@ g:himalaya_ui_default_query (DEPRECATED)
 		Default value: `SELECT * from "{table}" LIMIT 200;`
 
 ==============================================================================
-
-9. Functions					*vim-himalaya-ui-functions*
+8. Functions					*vim-himalaya-ui-functions*
 
 					      *himalaya_ui#statusline()*
 himalaya_ui#statusline({opts})
@@ -869,13 +707,13 @@ himalaya_ui#statusline({opts})
 		is opened from schema named `public` in database named `my-blog-himalaya`,
 		result will be this:
 >
-		HIMALAYAUI: my_blog -> public -> posts
+		HimalayaUI: my_blog -> public -> posts
 <
 		Function accepts optional dictionary with these properties set
 		as default:
 >
 		{
-		  'prefix': 'HIMALAYAUI: ',
+		  'prefix': 'HimalayaUI: ',
 		  'separator': ' -> ',
 		  'show': ['himalaya_name', 'schema', 'table']
 		}
@@ -931,22 +769,22 @@ himalaya_ui#connections_list()
 		* name - Connection name
 		* source - Where is connection defined (file, g:himalayas, env, dotenv)
 		* url - Connection url
-		* is_connected - Is HIMALAYAUI connected to this database
+		* is_connected - Is HimalayaUI connected to this database
 
 ==============================================================================
-10. Autocommands				*vim-himalaya-ui-autocommands*
+9. Autocommands					*vim-himalaya-ui-autocommands*
 
-					      *HIMALAYAUIOpened*
-HIMALAYAUIOpened
+					      *HimalayaUIOpened*
+HimalayaUIOpened
 		This autocommand is triggered when himalayaui drawer is opened, and
 		everything is set up. For example, to load additional
 		connections from custom env file using `vim-dotenv`, you could
 		do have something like this in your vimrc to load them:
 
-		`autocmd User HIMALAYAUIOpened let b:dotenv = DotenvRead('.envrc') | norm R`
+		`autocmd User HimalayaUIOpened let b:dotenv = DotenvRead('.envrc') | norm R`
 
 ==============================================================================
-11. Highlights					*vim-himalaya-ui-highlights*
+10. Highlights					*vim-himalaya-ui-highlights*
 
 To customize the colors of the notifications, add these custom hl groups:
 * `NotificationInfo`

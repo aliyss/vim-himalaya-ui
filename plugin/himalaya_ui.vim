@@ -144,10 +144,6 @@ augroup himalayaui
   autocmd FileType himalayaout,himalayaui autocmd BufEnter,WinEnter <buffer> stopinsert
 augroup END
 
-command! HIMALAYAUI call himalaya_ui#open('<mods>')
-command! HIMALAYAToggle call himalaya_ui#toggle()
-command! HIMALAYAUIClose call himalaya_ui#close()
-command! HIMALAYAUIAddConnection call himalaya_ui#connections#add()
-command! HIMALAYAUIFindBuffer call himalaya_ui#find_buffer()
-command! HIMALAYAUIRenameBuffer call himalaya_ui#rename_buffer()
-command! HIMALAYAUILastQueryInfo call himalaya_ui#print_last_list_info()
+command! HimalayaUI call himalaya_ui#open('<mods>')
+command! HimalayaToggle call himalaya_ui#toggle()
+command! HimalayaUIClose call himalaya_ui#close()

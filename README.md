@@ -61,16 +61,16 @@ Plug 'https://github.com/aliyss/vim-himalaya-ui'
 return {
     "aliyss/vim-himalaya-ui",
     cmd = {
-        "HIMALAYAUI"
+        "HimalayaUI"
     },
     init = function()
-        -- Your HIMALAYAUI configuration
+        -- Your HimalayaUI configuration
     end,
 }
 ```
 
 ## Usage
-After configuring your mail account and installing this repo, run `:HIMALAYAUI` to open the UI.
+After configuring your mail account and installing this repo, run `:HimalayaUI` to open the UI.
 
 ## Actions
 
