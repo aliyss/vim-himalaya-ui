@@ -32,7 +32,7 @@ This is my first vim plugin, so I'm learning as I go.
 
 ## Installation
 
-Install and configure [Himalaya CLI](https://github.com/pimalaya/himalaya) first. This is not yet done via the UI (see the Roadmap). Then install this plugin using your favorite plugin manager. I have no clue if the following works. Please open an issue if it works or doesn't so I can remove this line. I use a different setup anyways (works on my machine).
+Install and configure [Himalaya CLI](https://github.com/pimalaya/himalaya) first. This is not yet done via the UI (see the Roadmap). Then install this plugin using your favorite plugin manager:
 
 
 ### Using [packer](https://github.com/wbthomason/packer.nvim)
